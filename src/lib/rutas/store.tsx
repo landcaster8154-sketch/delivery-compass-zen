@@ -334,7 +334,7 @@ export function RutasProvider({ children }: { children: ReactNode }) {
           setBaseDatos((base) =>
             base.map((b) =>
               b.codigo === item.codigo
-                ? { ...b, horario, nota: nota ? nota : b.nota }
+                ? { ...b, horario, nota: nota ? nota : (b.nota ?? "") }
                 : b,
             ),
           );

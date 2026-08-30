@@ -28,7 +28,7 @@ export function calcularFranja(horario?: string): Franja {
   if (!horario) return "ultima";
   const m = horario.match(/^(\d{1,2}):(\d{2})/);
   if (!m) return "ultima";
-  const totalMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  const totalMin = parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
   if (totalMin === 0) return "ultima";
   if (totalMin < 9 * 60) return "urgente";
   if (totalMin < 12 * 60) return "segunda";
@@ -71,12 +71,13 @@ export function extraerCobros(texto: string): Record<string, CobroDetectado> {
   const matches: { codigo: string; blockStart: number; entryStart: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = bloqueRe.exec(texto)) !== null) {
-    matches.push({ codigo: m[1], blockStart: bloqueRe.lastIndex, entryStart: m.index });
+    matches.push({ codigo: m[1]!, blockStart: bloqueRe.lastIndex, entryStart: m.index });
   }
   const cobros: Record<string, CobroDetectado> = {};
   for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].blockStart;
-    const end = i + 1 < matches.length ? matches[i + 1].entryStart : texto.length;
+    const cur = matches[i]!;
+    const start = cur.blockStart;
+    const end = i + 1 < matches.length ? matches[i + 1]!.entryStart : texto.length;
     const bloque = texto.substring(start, end);
 
     const obligatorio = bloque.match(/(\d{5,})\s*\*\s*([\d]+,\d{2})\s+(\S.*?)\s*$/m);
@@ -84,16 +85,16 @@ export function extraerCobros(texto: string): Record<string, CobroDetectado> {
       !obligatorio && bloque.match(/(\d{5,})\s+([\d]+,\d{2})\s+(\S.*?)\s*$/m);
 
     if (obligatorio) {
-      cobros[matches[i].codigo] = {
+      cobros[cur.codigo] = {
         obligatorio: true,
-        monto: parseFloat(obligatorio[2].replace(",", ".")),
-        forma: obligatorio[3].trim(),
+        monto: parseFloat(obligatorio[2]!.replace(",", ".")),
+        forma: obligatorio[3]!.trim(),
       };
     } else if (opcional) {
-      cobros[matches[i].codigo] = {
+      cobros[cur.codigo] = {
         obligatorio: false,
-        monto: parseFloat(opcional[2].replace(",", ".")),
-        forma: opcional[3].trim(),
+        monto: parseFloat(opcional[2]!.replace(",", ".")),
+        forma: opcional[3]!.trim(),
       };
     }
   }
@@ -108,7 +109,7 @@ export function extraerCodigosPDF(
   texto.split("\n").forEach((line) => {
     const m = line.trim().match(re);
     if (m) {
-      const cod = m[1];
+      const cod = m[1]!;
       if (!codigos[cod]) {
         codigos[cod] = {
           nombre: (m[2] || "").trim(),
@@ -184,7 +185,7 @@ export function procesarTextoRuta(
   const itemsBase: ItemBase[] = [];
 
   codigos.forEach((codigo) => {
-    const info = codigosPDF[codigo];
+    const info = codigosPDF[codigo]!;
     const horarioDetectado = info.horario || "";
     const idx = baseDatos.findIndex((c) => c.codigo === codigo);
     if (idx === -1) {
@@ -211,7 +212,7 @@ export function procesarTextoRuta(
         horario: horarioDetectado,
       });
     } else {
-      const c = baseDatos[idx];
+      const c = baseDatos[idx]!;
       const horarioUtil =
         horarioDetectado && horarioDetectado !== "00:00-00:00" ? horarioDetectado : "";
       const horarioEf = horarioUtil || c.horario || "";
@@ -278,8 +279,8 @@ export function procesarTextoRuta(
   });
 
   const totalCobros = Object.keys(cobros)
-    .filter((k) => cobros[k].obligatorio)
-    .reduce((s, k) => s + cobros[k].monto, 0);
+    .filter((k) => cobros[k]!.obligatorio)
+    .reduce((s, k) => s + cobros[k]!.monto, 0);
 
   return {
     ok: true,
@@ -301,12 +302,12 @@ export function procesarTextoPedidos(texto: string): PedidosData {
   let currentLineas: LineaPedido[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i]!.trim();
 
     const cliMatch = line.match(/^Cli:\s*(\d+)/);
     if (cliMatch) {
       if (currentCli && currentLineas.length) pedidosData[currentCli] = currentLineas;
-      currentCli = cliMatch[1].trim();
+      currentCli = cliMatch[1]!.trim();
       currentLineas = [];
       continue;
     }
@@ -314,12 +315,12 @@ export function procesarTextoPedidos(texto: string): PedidosData {
     if (currentCli) {
       const prodMatch = line.match(/^(\d{4,6})\s+(.+?)\s+(\d+)\s*$/);
       if (prodMatch) {
-        const cod = prodMatch[1].trim();
+        const cod = prodMatch[1]!.trim();
         if (cod !== "9998") {
           currentLineas.push({
             cod,
-            desc: prodMatch[2].trim(),
-            cajas: parseInt(prodMatch[3], 10),
+            desc: prodMatch[2]!.trim(),
+            cajas: parseInt(prodMatch[3]!, 10),
           });
         }
       }
@@ -346,8 +347,9 @@ export function construirRefs(
     const nombre = clienteNombre[codCliente] || "Cliente " + codCliente;
     lineas.forEach((l) => {
       if (!refs[l.cod]) refs[l.cod] = { desc: l.desc, total: 0, clientes: [] };
-      refs[l.cod].total += l.cajas;
-      refs[l.cod].clientes.push({ nombre, cajas: l.cajas });
+      const ref = refs[l.cod]!;
+      ref.total += l.cajas;
+      ref.clientes.push({ nombre, cajas: l.cajas });
     });
   });
   return refs;

@@ -1,0 +1,73 @@
+export type Franja = "urgente" | "segunda" | "ultima";
+
+export interface Cliente {
+  codigo: string;
+  nombre: string;
+  direccion: string;
+  ruta: string;
+  orden: number;
+  telefono?: string;
+  horario?: string;
+  nota?: string;
+}
+
+export interface Parada {
+  id: string;
+  codigo: string;
+  nombre: string;
+  direccion: string;
+  ruta: string;
+  rutaCasa: string;
+  esNuevo: boolean;
+  esPrestado: boolean;
+  sinUbicar: boolean;
+  orden: number;
+  horario: string;
+  franja: Franja;
+  nota_entrega: string;
+  nota_hoy: string;
+  telefono: string;
+  cobro_obligatorio: boolean;
+  cobro_monto: number | null;
+  cobro_forma: string | null;
+  cobro_cobrado: boolean | null;
+}
+
+export interface LineaPedido {
+  cod: string;
+  desc: string;
+  cajas: number;
+}
+
+export type PedidosData = Record<string, LineaPedido[]>;
+
+export interface ObservacionPedido {
+  id: string;
+  codigo: string;
+  nombre: string;
+  ruta: string;
+  fecha: string;
+  texto: string;
+  timestamp: number;
+}
+
+export interface RefRepaso {
+  desc: string;
+  total: number;
+  clientes: { nombre: string; cajas: number }[];
+}
+
+export type Vista = "normal" | "compact" | "car";
+export type Tema = "dark" | "light";
+
+export interface SesionExport {
+  fecha: string;
+  pending: Parada[];
+  completed: Parada[];
+  issues: Parada[];
+  pedidosData: PedidosData;
+  baseDatos: Cliente[];
+  posicionesCruzadas: Record<string, Record<string, number>>;
+  franjasManuales: Record<string, Record<string, Franja>>;
+  incidenciasPedido: ObservacionPedido[];
+}

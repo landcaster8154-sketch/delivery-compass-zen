@@ -184,7 +184,7 @@ export function Modal({
   open: boolean;
   onClose: () => void;
   title: string;
-  subtitle?: string;
+  subtitle?: string | undefined;
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;

@@ -21,7 +21,7 @@ import { EmptyState } from "./primitives";
 import { cn } from "@/lib/utils";
 import { fechaLarga } from "@/lib/rutas/logic";
 import { useRutas } from "@/lib/rutas/store";
-import logo from "@/assets/logo.jpg";
+const logo = "/__l5e/assets-v1/0b70999a-5237-4a61-ae1b-a3838ce8bf1e/logo.jpg";
 
 type Tab = "reparto" | "pdf" | "repaso" | "base" | "resumen" | "musica";
 

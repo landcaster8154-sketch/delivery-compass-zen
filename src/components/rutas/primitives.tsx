@@ -186,8 +186,8 @@ export function Modal({
   title: string;
   subtitle?: string | undefined;
   children: ReactNode;
-  footer?: ReactNode;
-  wide?: boolean;
+  footer?: ReactNode | undefined;
+  wide?: boolean | undefined;
 }) {
   if (!open) return null;
   return (

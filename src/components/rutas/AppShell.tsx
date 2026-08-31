@@ -13,11 +13,12 @@ import {
 import { useRef, useState } from "react";
 
 import { ClientesTab } from "./ClientesTab";
+import { MusicaTab } from "./MusicaTab";
 import { PdfTab } from "./PdfTab";
 import { RepartoTab } from "./RepartoTab";
 import { RepasoTab } from "./RepasoTab";
 import { ResumenTab } from "./ResumenTab";
-import { EmptyState } from "./primitives";
+
 import { cn } from "@/lib/utils";
 import { fechaLarga } from "@/lib/rutas/logic";
 import { useRutas } from "@/lib/rutas/store";

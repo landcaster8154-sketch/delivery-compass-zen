@@ -98,15 +98,8 @@ export function AppShell() {
         {tab === "repaso" && <RepasoTab />}
         {tab === "base" && <ClientesTab />}
         {tab === "resumen" && <ResumenTab />}
-        {tab === "musica" && (
-          <div className="flex flex-1 items-center justify-center px-4">
-            <EmptyState
-              icon={<Music className="size-6" />}
-              title="Música no disponible"
-              hint="El reproductor externo (jukebox) no forma parte de esta aplicación."
-            />
-          </div>
-        )}
+        {tab === "musica" && <MusicaTab />}
+
       </main>
 
       <nav className="border-t border-border bg-elevated pb-[env(safe-area-inset-bottom)]">

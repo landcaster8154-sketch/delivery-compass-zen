@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/rutas/AppShell";
+import { MusicaProvider } from "@/lib/musica/player";
 import { RutasProvider } from "@/lib/rutas/store";
 
 const title = "Mis Rutas de Reparto — Gestión diaria de entregas";
@@ -22,7 +23,9 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <RutasProvider>
-      <AppShell />
+      <MusicaProvider>
+        <AppShell />
+      </MusicaProvider>
     </RutasProvider>
   );
 }

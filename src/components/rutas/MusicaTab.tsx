@@ -15,28 +15,11 @@ import {
   Trash2,
   Volume2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Badge, Btn, EmptyState, Modal } from "./primitives";
 import { cn } from "@/lib/utils";
-import {
-  borrarCarpeta,
-  borrarPista,
-  guardarEstado,
-  guardarPista,
-  leerEstado,
-  listarPistas,
-  vaciarBiblioteca,
-  type EstadoReproduccion,
-  type Pista,
-} from "@/lib/musica/db";
-import { extraerCaratula } from "@/lib/musica/id3";
-
-const AUDIO_RE = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac|webm)$/i;
-
-function limpiarNombre(name: string) {
-  return name.replace(/\.[^.]+$/, "").replace(/_/g, " ").trim();
-}
+import { useMusica } from "@/lib/musica/player";
 
 function tiempo(s: number) {
   if (!Number.isFinite(s) || s < 0) s = 0;
@@ -46,221 +29,56 @@ function tiempo(s: number) {
 }
 
 export function MusicaTab() {
-  const [pistas, setPistas] = useState<Pista[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [importando, setImportando] = useState<string | null>(null);
-  const [carpeta, setCarpeta] = useState<string>("__todas__");
-  const [actual, setActual] = useState<string | null>(null);
-  const [sonando, setSonando] = useState(false);
-  const [pos, setPos] = useState(0);
-  const [dur, setDur] = useState(0);
-  const [aleatorio, setAleatorio] = useState(false);
-  const [repeticion, setRepeticion] = useState<EstadoReproduccion["repeticion"]>("off");
-  const [volumen, setVolumen] = useState(1);
+  const {
+    pistas,
+    cargando,
+    importando,
+    carpeta,
+    setCarpeta,
+    carpetas,
+    cola,
+    pista,
+    actual,
+    sonando,
+    pos,
+    dur,
+    aleatorio,
+    setAleatorio,
+    repeticion,
+    ciclarRepeticion,
+    volumen,
+    setVolumen,
+    coverUrls,
+    coverActual,
+    importar,
+    reproducir,
+    togglePlay,
+    saltar,
+    buscar,
+    eliminarPista,
+    eliminarCarpeta,
+    vaciar,
+  } = useMusica();
+
   const [portada, setPortada] = useState(false);
   const [confirmar, setConfirmar] = useState<null | { titulo: string; accion: () => void }>(null);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const filesRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
-  const restaurado = useRef(false);
-  const inicial = useRef<number>(0);
 
-  /* ---------- carga inicial ---------- */
-  useEffect(() => {
-    let vivo = true;
-    (async () => {
-      try {
-        const [lista, estado] = await Promise.all([listarPistas(), leerEstado()]);
-        if (!vivo) return;
-        setPistas(lista);
-        if (estado) {
-          setAleatorio(estado.aleatorio);
-          setRepeticion(estado.repeticion);
-          setVolumen(estado.volumen ?? 1);
-          if (estado.trackId && lista.some((p) => p.id === estado.trackId)) {
-            inicial.current = estado.tiempo || 0;
-            setActual(estado.trackId);
-          }
-        }
-      } finally {
-        if (vivo) {
-          setCargando(false);
-          restaurado.current = true;
-        }
-      }
-    })();
-    return () => {
-      vivo = false;
-    };
-  }, []);
-
-  /* ---------- derivados ---------- */
-  const carpetas = useMemo(() => {
-    const set = new Map<string, number>();
-    for (const p of pistas) set.set(p.carpeta, (set.get(p.carpeta) ?? 0) + 1);
-    return [...set.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"));
-  }, [pistas]);
-
-  const cola = useMemo(
-    () => (carpeta === "__todas__" ? pistas : pistas.filter((p) => p.carpeta === carpeta)),
-    [pistas, carpeta],
-  );
-
-  const pista = useMemo(() => pistas.find((p) => p.id === actual) ?? null, [pistas, actual]);
-
-  const [srcUrl, setSrcUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!pista) {
-      setSrcUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(pista.blob);
-    setSrcUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [pista]);
-
-  const coverUrls = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const p of pistas) if (p.cover) m.set(p.id, URL.createObjectURL(p.cover));
-    return m;
-  }, [pistas]);
-  useEffect(() => () => coverUrls.forEach((u) => URL.revokeObjectURL(u)), [coverUrls]);
-
-  const coverActual = actual ? (coverUrls.get(actual) ?? null) : null;
-
-  /* ---------- persistencia de estado ---------- */
-  const persistir = useCallback(
-    (extra?: Partial<EstadoReproduccion>) => {
-      if (!restaurado.current) return;
-      void guardarEstado({
-        trackId: actual,
-        tiempo: audioRef.current?.currentTime ?? 0,
-        aleatorio,
-        repeticion,
-        volumen,
-        ...extra,
-      });
-    },
-    [actual, aleatorio, repeticion, volumen],
-  );
-
-  useEffect(() => {
-    persistir();
-  }, [persistir]);
-
-  /* ---------- importación ---------- */
-  const importar = useCallback(async (files: FileList | null, carpetaForzada?: string) => {
-    if (!files?.length) return;
-    const lista = [...files].filter((f) => AUDIO_RE.test(f.name) || f.type.startsWith("audio/"));
-    if (!lista.length) {
-      setImportando(null);
-      return;
-    }
-    for (let i = 0; i < lista.length; i++) {
-      const f = lista[i]!;
-      setImportando(`Añadiendo ${i + 1}/${lista.length}: ${limpiarNombre(f.name)}`);
-      const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath ?? "";
-      const carp = carpetaForzada ?? (rel.includes("/") ? rel.split("/")[0]! : "Sueltas");
-      const cover = await extraerCaratula(f);
-      await guardarPista({
-        id: `${carp}::${f.name}::${f.size}`,
-        nombre: limpiarNombre(f.name),
-        carpeta: carp,
-        tipo: f.type || "audio/mpeg",
-        tamano: f.size,
-        addedAt: Date.now(),
-        blob: f,
-        cover,
-      });
-    }
-    setPistas(await listarPistas());
-    setImportando(null);
-  }, []);
-
-  /* ---------- reproducción ---------- */
-  const indice = cola.findIndex((p) => p.id === actual);
-
-  const reproducir = useCallback((id: string) => {
-    inicial.current = 0;
-    setActual(id);
-    setSonando(true);
-  }, []);
-
-  const saltar = useCallback(
-    (dir: 1 | -1) => {
-      if (!cola.length) return;
-      if (aleatorio && cola.length > 1) {
-        let n = indice;
-        while (n === indice) n = Math.floor(Math.random() * cola.length);
-        reproducir(cola[n]!.id);
-        return;
-      }
-      const base = indice < 0 ? 0 : indice;
-      const n = (base + dir + cola.length) % cola.length;
-      reproducir(cola[n]!.id);
-    },
-    [cola, indice, aleatorio, reproducir],
-  );
-
-  const alTerminar = useCallback(() => {
-    const a = audioRef.current;
-    if (repeticion === "one" && a) {
-      a.currentTime = 0;
-      void a.play();
-      return;
-    }
-    if (!cola.length) return;
-    const ultimo = !aleatorio && indice === cola.length - 1;
-    if (ultimo && repeticion === "off") {
-      setSonando(false);
-      return;
-    }
-    saltar(1);
-  }, [repeticion, cola.length, indice, aleatorio, saltar]);
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a || !srcUrl) return;
-    a.volume = volumen;
-    if (sonando) void a.play().catch(() => setSonando(false));
-    else a.pause();
-  }, [srcUrl, sonando, volumen]);
-
-  const togglePlay = () => {
-    if (!actual && cola.length) return reproducir(cola[0]!.id);
-    setSonando((v) => !v);
-  };
-
-  const ciclarRepeticion = () =>
-    setRepeticion((r) => (r === "off" ? "all" : r === "all" ? "one" : "off"));
-
-  /* ---------- borrado ---------- */
   const pedirBorrarCarpeta = (nombre: string) =>
     setConfirmar({
       titulo: `¿Eliminar la carpeta “${nombre}” y todas sus canciones?`,
-      accion: async () => {
-        await borrarCarpeta(nombre);
-        setPistas(await listarPistas());
-        if (carpeta === nombre) setCarpeta("__todas__");
-      },
+      accion: () => void eliminarCarpeta(nombre),
     });
 
   const pedirVaciar = () =>
     setConfirmar({
       titulo: "¿Vaciar toda la biblioteca de música?",
-      accion: async () => {
-        await vaciarBiblioteca();
-        setPistas([]);
-        setActual(null);
-        setSonando(false);
-        setCarpeta("__todas__");
-      },
+      accion: () => void vaciar(),
     });
 
   const progreso = dur > 0 ? (pos / dur) * 100 : 0;
 
-  /* ---------- UI ---------- */
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Barra de biblioteca */}
@@ -422,14 +240,7 @@ export function MusicaTab() {
                       </span>
                     </button>
                     <button
-                      onClick={async () => {
-                        await borrarPista(p.id);
-                        setPistas(await listarPistas());
-                        if (activo) {
-                          setActual(null);
-                          setSonando(false);
-                        }
-                      }}
+                      onClick={() => void eliminarPista(p.id)}
                       title="Eliminar canción"
                       className="rounded-md p-2 text-subtle transition-colors hover:bg-secondary hover:text-destructive"
                     >
@@ -478,11 +289,7 @@ export function MusicaTab() {
                 max={dur || 0}
                 step={0.1}
                 value={pos}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setPos(v);
-                  if (audioRef.current) audioRef.current.currentTime = v;
-                }}
+                onChange={(e) => buscar(Number(e.target.value))}
                 className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-secondary accent-[var(--color-primary)]"
                 style={{
                   background: `linear-gradient(to right, var(--color-primary) ${progreso}%, var(--color-secondary) ${progreso}%)`,
@@ -605,11 +412,7 @@ export function MusicaTab() {
                 max={dur || 0}
                 step={0.1}
                 value={pos}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setPos(v);
-                  if (audioRef.current) audioRef.current.currentTime = v;
-                }}
+                onChange={(e) => buscar(Number(e.target.value))}
                 className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full"
                 style={{
                   background: `linear-gradient(to right, var(--color-primary) ${progreso}%, var(--color-secondary) ${progreso}%)`,
@@ -672,23 +475,6 @@ export function MusicaTab() {
       >
         <p className="text-sm text-muted-foreground">{confirmar?.titulo}</p>
       </Modal>
-
-      <audio
-        ref={audioRef}
-        src={srcUrl ?? undefined}
-        onLoadedMetadata={(e) => {
-          const a = e.currentTarget;
-          setDur(a.duration || 0);
-          if (inicial.current > 0) {
-            a.currentTime = Math.min(inicial.current, a.duration || 0);
-            inicial.current = 0;
-          }
-        }}
-        onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
-        onEnded={alTerminar}
-        onPause={() => persistir()}
-        onPlay={() => setSonando(true)}
-      />
     </div>
   );
 }

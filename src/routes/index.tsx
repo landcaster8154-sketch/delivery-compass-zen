@@ -22,7 +22,9 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <RutasProvider>
-      <AppShell />
+      <MusicaProvider>
+        <AppShell />
+      </MusicaProvider>
     </RutasProvider>
   );
 }

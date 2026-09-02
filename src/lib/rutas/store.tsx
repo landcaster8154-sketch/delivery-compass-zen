@@ -272,34 +272,39 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     return Object.keys(data).length;
   }, []);
 
-  const marcarEntregado = useCallback((id: string, cobrado?: boolean) => {
-    setPending((prev) => {
-      const i = prev.findIndex((c) => c.id === id);
-      if (i === -1) return prev;
-      const cliente = { ...prev[i]! };
+  const marcarEntregado = useCallback(
+    (id: string, cobrado?: boolean) => {
+      const i = pending.findIndex((c) => c.id === id);
+      if (i === -1) return;
+      const cliente = { ...pending[i]! };
       if (cliente.cobro_monto) {
         cliente.cobro_cobrado = cliente.cobro_obligatorio ? true : !!cobrado;
       }
       setCompleted((c) => [...c, cliente]);
-      return prev.filter((_, idx) => idx !== i);
-    });
-  }, []);
+      setPending((p) => p.filter((x) => x.id !== id));
+    },
+    [pending],
+  );
 
-  const marcarIncidencia = useCallback((id: string) => {
-    setPending((prev) => {
-      const i = prev.findIndex((c) => c.id === id);
-      if (i === -1) return prev;
-      setIssues((s) => [...s, prev[i]!]);
-      return prev.filter((_, idx) => idx !== i);
-    });
-  }, []);
+  const marcarIncidencia = useCallback(
+    (id: string) => {
+      const i = pending.findIndex((c) => c.id === id);
+      if (i === -1) return;
+      const cliente = pending[i]!;
+      setIssues((s) => [...s, cliente]);
+      setPending((p) => p.filter((x) => x.id !== id));
+    },
+    [pending],
+  );
 
-  const recuperarCliente = useCallback((id: string, origen: "done" | "issue") => {
-    const setter = origen === "done" ? setCompleted : setIssues;
-    setter((prev) => {
-      const i = prev.findIndex((c) => c.id === id);
-      if (i === -1) return prev;
-      const item = prev[i]!;
+  const recuperarCliente = useCallback(
+    (id: string, origen: "done" | "issue") => {
+      const origenLista = origen === "done" ? completed : issues;
+      const i = origenLista.findIndex((c) => c.id === id);
+      if (i === -1) return;
+      const item = origenLista[i]!;
+      const setterOrigen = origen === "done" ? setCompleted : setIssues;
+      setterOrigen((prev) => prev.filter((x) => x.id !== id));
       setPending((p) =>
         [...p, item].sort((a, b) => {
           const ra = FRANJA_RANK[a.franja] ?? 2;
@@ -308,9 +313,9 @@ export function RutasProvider({ children }: { children: ReactNode }) {
           return a.orden - b.orden;
         }),
       );
-      return prev.filter((_, idx) => idx !== i);
-    });
-  }, []);
+    },
+    [completed, issues],
+  );
 
   const indiceFinFranja = (lista: Parada[], franja: Franja) => {
     const rank = FRANJA_RANK[franja];

@@ -19,6 +19,7 @@ export interface TraficoDato {
 const K_DUM = "rr_dum_estados";
 const K_DUM_URL = "rr_dum_url";
 const K_TRAFICO = "rr_trafico";
+const K_TIEMPOS = "rr_tiempos_entrega";
 
 export const DUM_DEEP_LINK = "madrid360dum://";
 export const DUM_URL_DEFECTO = "https://dum.madrid.es/";
@@ -79,6 +80,8 @@ interface DumStore {
   estados: Record<string, EstadoDum>;
   dumUrl: string;
   trafico: Record<string, TraficoDato>;
+  tiempos: Record<string, number>;
+  registrarEntrega: (id: string) => void;
   estadoDum: (id: string) => EstadoDum;
   setEstadoDum: (id: string, estado: EstadoDum) => void;
   setDumUrl: (url: string) => void;
@@ -101,6 +104,9 @@ export function DumProvider({ children }: { children: ReactNode }) {
   const [trafico, setTraficoState] = useState<Record<string, TraficoDato>>(() =>
     leer<Record<string, TraficoDato>>(K_TRAFICO, {}),
   );
+  const [tiempos, setTiempos] = useState<Record<string, number>>(() =>
+    leer<Record<string, number>>(K_TIEMPOS, {}),
+  );
   const [dumUrl, setDumUrlState] = useState<string>(() =>
     leer<string>(K_DUM_URL, DUM_URL_DEFECTO),
   );
@@ -110,6 +116,15 @@ export function DumProvider({ children }: { children: ReactNode }) {
     setEstados(leer<Record<string, EstadoDum>>(K_DUM, {}));
     setTraficoState(leer<Record<string, TraficoDato>>(K_TRAFICO, {}));
     setDumUrlState(leer<string>(K_DUM_URL, DUM_URL_DEFECTO));
+    setTiempos(leer<Record<string, number>>(K_TIEMPOS, {}));
+  }, []);
+
+  const registrarEntrega = useCallback((id: string) => {
+    setTiempos((prev) => {
+      const next = { ...prev, [id]: Date.now() };
+      escribir(K_TIEMPOS, next);
+      return next;
+    });
   }, []);
 
   const setEstadoDum = useCallback((id: string, estado: EstadoDum) => {
@@ -154,14 +169,16 @@ export function DumProvider({ children }: { children: ReactNode }) {
     () => ({
       estados,
       trafico,
+      tiempos,
       dumUrl,
+      registrarEntrega,
       estadoDum: (id: string) => estados[id] ?? "activo",
       setEstadoDum,
       setDumUrl,
       setTrafico,
       abrirDum,
     }),
-    [estados, trafico, dumUrl, setEstadoDum, setDumUrl, setTrafico, abrirDum],
+    [estados, trafico, tiempos, dumUrl, registrarEntrega, setEstadoDum, setDumUrl, setTrafico, abrirDum],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

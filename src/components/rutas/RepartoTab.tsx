@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Clock,
   Columns3,
+  ListOrdered,
   Eye,
   FileText,
   GripVertical,
@@ -20,6 +21,10 @@ import {
 import { useMemo, useState } from "react";
 
 import { Badge, Btn, Card, EmptyState, Field, LinkBtn, Modal, TextArea } from "./primitives";
+import { DumAlertModal, DumBadge } from "./DumAlert";
+import { TraficoBadge, TraficoPanel } from "./TraficoPanel";
+import { TimelinePorRealizar } from "./TimelinePorRealizar";
+import { useDum } from "@/lib/rutas/dum";
 import { cn } from "@/lib/utils";
 import {
   FRANJA_META,
@@ -43,6 +48,8 @@ const franjaDot: Record<Franja, string> = {
 
 export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
   const s = useRutas();
+  const d = useDum();
+  const [dumParada, setDumParada] = useState<Parada | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [horarioAbierto, setHorarioAbierto] = useState<string | null>(null);
   const [obsAbierta, setObsAbierta] = useState<string | null>(null);
@@ -67,7 +74,14 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
     return set.sort();
   }, [s.pending, s.completed, s.issues]);
 
-  const entregar = (p: Parada) => {
+  /** Paso 1: nunca finaliza directamente; primero el aviso DUM 360. */
+  const entregar = (p: Parada) => setDumParada(p);
+
+  /** Paso 2: solo tras confirmar el aviso DUM. */
+  const finalizarParada = (p: Parada) => {
+    d.setEstadoDum(p.id, "cerrado");
+    d.registrarEntrega(p.id);
+    setDumParada(null);
     if (p.cobro_monto && !p.cobro_obligatorio) {
       setCobroPrompt(p);
       return;
@@ -124,6 +138,7 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
                     ["normal", Eye, "Cómoda"],
                     ["compact", Columns3, "Compacta"],
                     ["car", Truck, "Coche"],
+                    ["timeline", ListOrdered, "Por realizar"],
                   ] as const
                 ).map(([v, Icon, label]) => (
                   <button
@@ -150,6 +165,8 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
               </Btn>
             </div>
           </div>
+
+          <TraficoPanel rutas={rutas} />
         </div>
       </div>
 
@@ -185,8 +202,18 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
                 <span className="shrink-0 font-mono text-xs text-muted-foreground">
                   #{fp[0]!.orden} · R{fp[0]!.ruta}
                 </span>
+                <TraficoBadge ruta={fp[0]!.ruta} />
+                <DumBadge id={fp[0]!.id} />
               </div>
 
+              {s.vista === "timeline" ? (
+                <TimelinePorRealizar
+                  paradas={fp}
+                  onEntregar={entregar}
+                  onIncidencia={(p) => s.marcarIncidencia(p.id)}
+                />
+              ) : (
+              <>
               {FRANJA_ORDEN.map((franja) => {
                 const items = fp.filter((c) => c.franja === franja);
                 const meta = FRANJA_META[franja];
@@ -269,6 +296,8 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
                   </section>
                 );
               })}
+              </>
+              )}
             </>
           )}
         </div>
@@ -326,6 +355,14 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
 
       {/* Observaciones de pedido */}
       <ObservacionesModal open={obsPanelAbierto} onClose={() => setObsPanelAbierto(false)} />
+
+      {/* Aviso Madrid DUM 360 antes de finalizar */}
+      <DumAlertModal
+        open={!!dumParada}
+        nombre={dumParada?.nombre}
+        onOmitirYFinalizar={() => dumParada && finalizarParada(dumParada)}
+        onCancelar={() => setDumParada(null)}
+      />
     </div>
   );
 }

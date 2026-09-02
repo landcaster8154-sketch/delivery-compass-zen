@@ -137,6 +137,19 @@
   html,
   body {
     height: 100%;
+    /* Fondo global explícito: el shell nunca puede quedarse en blanco. */
+    background-color: var(--color-background);
+    color-scheme: dark;
+  }
+
+  html.light,
+  html.light body {
+    color-scheme: light;
+  }
+
+  #root,
+  body > div {
+    background-color: var(--color-background);
   }
 
   body {

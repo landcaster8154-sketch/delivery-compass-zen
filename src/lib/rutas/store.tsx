@@ -169,7 +169,7 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     setRepasoCounted(read<{ counted: Record<string, number> }>(repasoKey(), { counted: {} }).counted || {});
 
     const v = localStorage.getItem(K.vista) as Vista | null;
-    if (v === "compact" || v === "car") setVistaState(v);
+    if (v === "compact" || v === "car" || v === "timeline") setVistaState(v);
     const t = localStorage.getItem(K.tema) as Tema | null;
     setTemaState(t === "light" ? "light" : "dark");
     setHidratado(true);

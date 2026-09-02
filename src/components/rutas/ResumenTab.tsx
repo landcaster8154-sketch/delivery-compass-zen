@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 
 export function ResumenTab() {
   const s = useRutas();
-  const d = useDum();
   const [copiado, setCopiado] = useState(false);
   const liq = useMemo(
     () => calcularLiquidacion(s.pending, s.completed, s.issues),

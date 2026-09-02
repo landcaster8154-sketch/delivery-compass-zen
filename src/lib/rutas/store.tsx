@@ -206,6 +206,7 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.classList.toggle("light", tema === "light");
     root.classList.toggle("dark", tema === "dark");
+    root.style.backgroundColor = tema === "dark" ? "#0c0d12" : "#f6f7fb";
     if (hidratado) {
       try {
         localStorage.setItem(K.tema, tema);

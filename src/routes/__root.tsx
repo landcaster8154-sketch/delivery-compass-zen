@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-const TEMA_INICIAL = `(function(){try{var t=localStorage.getItem('rr_tema');var d=t!=='light';var r=document.documentElement;r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.backgroundColor=d?'#0c0d12':'#f6f7fb';document.addEventListener('DOMContentLoaded',function(){document.body.style.backgroundColor=r.style.backgroundColor;});}catch(e){document.documentElement.classList.add('dark');}})();`;
+const TEMA_INICIAL = `(function(){try{var t=localStorage.getItem('rr_tema');var d=t!=='light';var r=document.documentElement;r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.backgroundColor=d?'#0c0d12':'#f6f7fb';}catch(e){document.documentElement.classList.add('dark');}})();`;
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -109,7 +109,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />
       </head>
-      <body style={{ backgroundColor: "#0c0d12", minHeight: "100%" }}>
+      <body>
         {children}
         <Scripts />
       </body>

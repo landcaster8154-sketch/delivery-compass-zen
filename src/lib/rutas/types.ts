@@ -57,7 +57,7 @@ export interface RefRepaso {
   clientes: { nombre: string; cajas: number }[];
 }
 
-export type Vista = "normal" | "compact" | "car";
+export type Vista = "normal" | "compact" | "car" | "timeline";
 export type Tema = "dark" | "light";
 
 export interface SesionExport {

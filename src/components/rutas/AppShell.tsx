@@ -9,6 +9,8 @@ import {
   Upload,
   Users,
   ClipboardList,
+  MoonStar,
+  Navigation,
 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -18,6 +20,7 @@ import { PdfTab } from "./PdfTab";
 import { RepartoTab } from "./RepartoTab";
 import { RepasoTab } from "./RepasoTab";
 import { ResumenTab } from "./ResumenTab";
+import { ConduccionView } from "./ConduccionView";
 
 import { cn } from "@/lib/utils";
 import { fechaLarga } from "@/lib/rutas/logic";
@@ -40,6 +43,7 @@ export function AppShell() {
   const [tab, setTab] = useState<Tab>("reparto");
   const [msg, setMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [conduccion, setConduccion] = useState(false);
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -78,6 +82,21 @@ export function AppShell() {
           }}
         />
         <button
+          onClick={() => setConduccion(true)}
+          className="flex items-center gap-2 rounded-xl border-2 border-primary bg-primary px-3 py-2.5 text-sm font-black uppercase tracking-wide text-primary-foreground"
+        >
+          <Navigation className="size-5" />
+          <span className="hidden sm:inline">Conducción</span>
+        </button>
+        <button
+          onClick={() => s.setTema("dark")}
+          title="Forzar modo oscuro"
+          className="flex items-center gap-2 rounded-xl border-2 border-border-strong bg-elevated px-3 py-2.5 text-sm font-black uppercase tracking-wide text-foreground"
+        >
+          <MoonStar className="size-5" />
+          <span className="hidden md:inline">Forzar modo oscuro</span>
+        </button>
+        <button
           onClick={() => s.setTema(s.tema === "dark" ? "light" : "dark")}
           title="Cambiar tema"
           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -92,6 +111,10 @@ export function AppShell() {
         </p>
       )}
 
+      {conduccion ? (
+        <ConduccionView onSalir={() => setConduccion(false)} />
+      ) : (
+      <>
       <main className="flex min-h-0 flex-1 flex-col">
         {tab === "reparto" && <RepartoTab onIrAResumen={() => setTab("resumen")} />}
         {tab === "pdf" && <PdfTab onProcesado={() => setTab("reparto")} />}
@@ -121,6 +144,8 @@ export function AppShell() {
           ))}
         </div>
       </nav>
+      </>
+      )}
     </div>
   );
 }

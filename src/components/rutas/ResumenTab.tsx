@@ -9,9 +9,12 @@ import {
   urlExportacion,
 } from "@/lib/rutas/logic";
 import { useRutas } from "@/lib/rutas/store";
+import { useDum } from "@/lib/rutas/dum";
+import { cn } from "@/lib/utils";
 
 export function ResumenTab() {
   const s = useRutas();
+  const d = useDum();
   const [copiado, setCopiado] = useState(false);
   const liq = useMemo(
     () => calcularLiquidacion(s.pending, s.completed, s.issues),
@@ -27,6 +30,7 @@ export function ResumenTab() {
   return (
     <div className="scroll-area flex-1 px-4 py-5 sm:px-6">
       <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-2">
+        <Realizadas />
         <Card className="p-4 sm:p-5">
           <h2 className="font-display text-base font-bold">Resultados del día</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -95,6 +99,115 @@ export function ResumenTab() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function Realizadas() {
+  const s = useRutas();
+  const d = useDum();
+
+  const porRuta = useMemo(() => {
+    const acc: Record<string, { hechas: number; total: number; cajas: number }> = {};
+    [...s.pending, ...s.completed, ...s.issues].forEach((p) => {
+      const r = (acc[p.ruta] ||= { hechas: 0, total: 0, cajas: 0 });
+      r.total += 1;
+      const lineas = s.pedidosData[p.codigo] || [];
+      r.cajas += lineas.reduce((n, l) => n + l.cajas, 0);
+    });
+    s.completed.forEach((p) => {
+      const r = (acc[p.ruta] ||= { hechas: 0, total: 0, cajas: 0 });
+      r.hechas += 1;
+    });
+    return Object.entries(acc).sort(([a], [b]) => a.localeCompare(b));
+  }, [s.pending, s.completed, s.issues, s.pedidosData]);
+
+  const tiempos = s.completed
+    .map((p) => ({ p, ts: d.tiempos[p.id] }))
+    .filter((x): x is { p: (typeof s.completed)[number]; ts: number } => !!x.ts)
+    .sort((a, b) => a.ts - b.ts);
+
+  const duracionMedia = (() => {
+    if (tiempos.length < 2) return null;
+    const primero = tiempos[0]!.ts;
+    const ultimo = tiempos[tiempos.length - 1]!.ts;
+    return Math.round((ultimo - primero) / 60000 / (tiempos.length - 1));
+  })();
+
+  return (
+    <Card className="p-4 sm:p-5 lg:col-span-2">
+      <h2 className="font-display text-base font-bold">Realizadas</h2>
+      <p className="text-xs text-muted-foreground">
+        Resumen diario calculado con los datos guardados en el dispositivo.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        {porRuta.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aún no hay paradas cargadas.</p>
+        ) : (
+          porRuta.map(([ruta, r]) => {
+            const pct = r.total ? Math.round((r.hechas / r.total) * 100) : 0;
+            return (
+              <div key={ruta} className="rounded-xl border border-border bg-elevated p-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                  <span>Ruta {ruta}</span>
+                  <span className="text-muted-foreground">
+                    {r.hechas}/{r.total} paradas · {r.cajas} paquetes
+                  </span>
+                  <span className={cn("ml-auto tabular", pct === 100 ? "text-success" : "text-accent")}>
+                    {pct}%
+                  </span>
+                </div>
+                <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-success transition-[width] duration-500"
+                    style={{ width: pct + "%" }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <Metric label="Entregas registradas" value={String(tiempos.length)} />
+        <Metric
+          label="Min./parada"
+          value={duracionMedia !== null ? String(duracionMedia) : "—"}
+          tone="text-accent"
+        />
+        <Metric
+          label="Última entrega"
+          value={
+            tiempos.length
+              ? new Date(tiempos[tiempos.length - 1]!.ts).toLocaleTimeString("es-ES", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—"
+          }
+        />
+      </div>
+
+      {tiempos.length > 0 && (
+        <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+          {tiempos
+            .slice(-8)
+            .reverse()
+            .map(({ p, ts }) => (
+              <li key={p.id} className="flex items-center justify-between gap-2">
+                <span className="truncate">{p.nombre}</span>
+                <span className="tabular">
+                  {new Date(ts).toLocaleTimeString("es-ES", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </li>
+            ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 

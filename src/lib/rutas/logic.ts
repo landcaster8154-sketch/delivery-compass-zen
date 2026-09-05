@@ -256,8 +256,10 @@ export function procesarTextoRuta(
     const c = baseDatos.find((b) => b.codigo === item.codigo)!;
     const cobro = cobros[item.codigo] || null;
     return {
-      id: item.codigo + "_" + i,
+      id: `${numRuta}-client-${item.codigo}`,
+      estado: "pendiente" as const,
       codigo: item.codigo,
+
       nombre: c.nombre,
       direccion: c.direccion,
       ruta: numRuta,

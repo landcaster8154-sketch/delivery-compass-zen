@@ -111,6 +111,19 @@ export function AppShell() {
         </p>
       )}
 
+      {s.avisoReparacion && (
+        <div className="flex items-center gap-3 border-b border-warning/40 bg-warning/15 px-4 py-2 text-sm font-semibold text-warning sm:px-6">
+          <span className="flex-1">{s.avisoReparacion}</span>
+          <button
+            onClick={s.descartarAviso}
+            className="rounded-lg border border-warning/50 px-3 py-1 text-xs font-bold uppercase"
+          >
+            Entendido
+          </button>
+        </div>
+      )}
+
+
       {conduccion ? (
         <ConduccionView onSalir={() => setConduccion(false)} />
       ) : (

@@ -69,12 +69,17 @@ export type Tema = "dark" | "light";
 
 export interface SesionExport {
   fecha: string;
-  pending: Parada[];
-  completed: Parada[];
-  issues: Parada[];
+  /** Formato actual: array canónico + totales originales. */
+  paradas?: Parada[];
+  totalesRuta?: TotalesRuta;
+  /** Formato heredado (se migra al importar). */
+  pending?: Parada[];
+  completed?: Parada[];
+  issues?: Parada[];
   pedidosData: PedidosData;
   baseDatos: Cliente[];
   posicionesCruzadas: Record<string, Record<string, number>>;
   franjasManuales: Record<string, Record<string, Franja>>;
   incidenciasPedido: ObservacionPedido[];
 }
+

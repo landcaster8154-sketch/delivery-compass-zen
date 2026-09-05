@@ -11,8 +11,15 @@ export interface Cliente {
   nota?: string;
 }
 
+export type EstadoParada = "pendiente" | "entregado" | "incidencia";
+
+/** Total original de paradas por ruta, fijado al crear/importar la ruta. */
+export type TotalesRuta = Record<string, number>;
+
 export interface Parada {
   id: string;
+  estado: EstadoParada;
+
   codigo: string;
   nombre: string;
   direccion: string;

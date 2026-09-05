@@ -1,0 +1,19 @@
+{
+  "name": "Mis Rutas de Reparto",
+  "short_name": "Rutas",
+  "description": "Gestión offline de rutas de reparto, paradas, DUM 360 y tráfico, optimizada para pantalla de autorradio.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0c0d12",
+  "theme_color": "#0c0d12",
+  "lang": "es",
+  "categories": ["productivity", "navigation"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

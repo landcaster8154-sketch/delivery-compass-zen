@@ -17,6 +17,16 @@ import {
   procesarTextoRuta,
   type ResultadoRuta,
 } from "./logic";
+import {
+  cambiarEstado,
+  entregadasDe,
+  incidenciasDe,
+  migrarDesdeListas,
+  pendientesDe,
+  repararEstado,
+  totalesDesdeParadas,
+  validarInvariantes,
+} from "./paradas";
 import type {
   Cliente,
   Franja,
@@ -25,6 +35,7 @@ import type {
   PedidosData,
   SesionExport,
   Tema,
+  TotalesRuta,
   Vista,
 } from "./types";
 
@@ -32,6 +43,8 @@ const BASE_INICIAL = baseInicial as Cliente[];
 
 const K = {
   base: "rr_base",
+  paradas: "rr_paradas",
+  totales: "rr_totales_ruta",
   pending: "rr_pending",
   completed: "rr_completed",
   issues: "rr_issues",
@@ -63,15 +76,6 @@ function write(key: string, value: unknown) {
   }
 }
 
-function sanearPending(lista: Parada[]): Parada[] {
-  return (lista || []).map((p) => ({
-    ...p,
-    franja: p.franja || calcularFranja(p.horario || ""),
-    horario: p.horario ?? "",
-    nota_hoy: p.nota_hoy ?? "",
-  }));
-}
-
 function limpiarAntiguas(obs: ObservacionPedido[]): ObservacionPedido[] {
   const LIMITE = 30 * 24 * 60 * 60 * 1000;
   const ahora = Date.now();
@@ -81,6 +85,10 @@ function limpiarAntiguas(obs: ObservacionPedido[]): ObservacionPedido[] {
 export interface RutasStore {
   hidratado: boolean;
   baseDatos: Cliente[];
+  /** Array canónico: única fuente de verdad de las paradas del día. */
+  paradas: Parada[];
+  totalesRuta: TotalesRuta;
+  /** Selectores derivados del array canónico (nunca listas independientes). */
   pending: Parada[];
   completed: Parada[];
   issues: Parada[];
@@ -91,6 +99,8 @@ export interface RutasStore {
   currentRuta: string;
   vista: Vista;
   tema: Tema;
+  avisoReparacion: string | null;
+  descartarAviso: () => void;
 
   setCurrentRuta: (r: string) => void;
   setVista: (v: Vista) => void;
@@ -136,9 +146,9 @@ function repasoKey() {
 export function RutasProvider({ children }: { children: ReactNode }) {
   const [hidratado, setHidratado] = useState(false);
   const [baseDatos, setBaseDatos] = useState<Cliente[]>(BASE_INICIAL);
-  const [pending, setPending] = useState<Parada[]>([]);
-  const [completed, setCompleted] = useState<Parada[]>([]);
-  const [issues, setIssues] = useState<Parada[]>([]);
+  const [paradas, setParadasState] = useState<Parada[]>([]);
+  const [totalesRuta, setTotalesRuta] = useState<TotalesRuta>({});
+  const [avisoReparacion, setAviso] = useState<string | null>(null);
   const [pedidosData, setPedidosData] = useState<PedidosData>({});
   const [incidenciasPedido, setIncidencias] = useState<ObservacionPedido[]>([]);
   const [barcodeMap, setBarcodeMap] = useState<Record<string, string>>({});
@@ -149,8 +159,29 @@ export function RutasProvider({ children }: { children: ReactNode }) {
 
   const posicionesCruzadas = useRef<Record<string, Record<string, number>>>({});
   const franjasManuales = useRef<Record<string, Record<string, Franja>>>({});
+  const totalesRef = useRef<TotalesRuta>({});
+  totalesRef.current = totalesRuta;
 
-  /* ── Carga inicial ── */
+  /**
+   * Toda escritura del array canónico pasa por aquí: valida invariantes antes
+   * y después, y autorrepara si detecta ids duplicados o descuadres.
+   */
+  const setParadas = useCallback(
+    (updater: (prev: Parada[]) => Parada[]) => {
+      setParadasState((prev) => {
+        const siguiente = updater(prev);
+        const check = validarInvariantes(siguiente, totalesRef.current);
+        if (check.ok) return siguiente;
+        const rep = repararEstado(siguiente, totalesRef.current);
+        setTotalesRuta(rep.totales);
+        setAviso(rep.mensaje);
+        return rep.paradas;
+      });
+    },
+    [],
+  );
+
+  /* ── Carga inicial (instantánea, sin red) ── */
   useEffect(() => {
     const base = read<Cliente[] | null>(K.base, null);
     setBaseDatos(base && base.length ? base : BASE_INICIAL);
@@ -160,13 +191,45 @@ export function RutasProvider({ children }: { children: ReactNode }) {
 
     const fecha = localStorage.getItem(K.fecha);
     if (fecha === new Date().toDateString()) {
-      setPending(sanearPending(read<Parada[]>(K.pending, [])));
-      setCompleted(sanearPending(read<Parada[]>(K.completed, [])));
-      setIssues(sanearPending(read<Parada[]>(K.issues, [])));
+      const guardadas = read<Parada[] | null>(K.paradas, null);
+      let inicial: Parada[];
+      let migrado = false;
+      if (guardadas && Array.isArray(guardadas)) {
+        inicial = guardadas;
+      } else {
+        // Estructura antigua: tres listas separadas → array canónico.
+        const mig = migrarDesdeListas(
+          read<Parada[]>(K.pending, []),
+          read<Parada[]>(K.completed, []),
+          read<Parada[]>(K.issues, []),
+        );
+        inicial = mig.paradas;
+        migrado = mig.paradas.length > 0;
+      }
+      const rep = repararEstado(inicial, read<TotalesRuta>(K.totales, {}));
+      setParadasState(rep.paradas);
+      setTotalesRuta(rep.totales);
+      totalesRef.current = rep.totales;
+      if (rep.reparado || migrado) {
+        setAviso(
+          rep.mensaje ??
+            "Se actualizaron y repararon los datos guardados en el dispositivo.",
+        );
+      }
+      // Las claves antiguas ya no son fuente de verdad.
+      try {
+        localStorage.removeItem(K.pending);
+        localStorage.removeItem(K.completed);
+        localStorage.removeItem(K.issues);
+      } catch {
+        /* noop */
+      }
     }
     setPedidosData(read<PedidosData>(K.pedidos, {}));
     setBarcodeMap(read<Record<string, string>>(K.barcodes, {}));
-    setRepasoCounted(read<{ counted: Record<string, number> }>(repasoKey(), { counted: {} }).counted || {});
+    setRepasoCounted(
+      read<{ counted: Record<string, number> }>(repasoKey(), { counted: {} }).counted || {},
+    );
 
     const v = localStorage.getItem(K.vista) as Vista | null;
     if (v === "compact" || v === "car" || v === "timeline") setVistaState(v);
@@ -175,13 +238,12 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     setHidratado(true);
   }, []);
 
-  /* ── Persistencia ── */
+  /* ── Persistencia (valida invariantes antes de escribir) ── */
   useEffect(() => {
     if (!hidratado) return;
     write(K.base, baseDatos);
-    write(K.pending, pending);
-    write(K.completed, completed);
-    write(K.issues, issues);
+    write(K.paradas, paradas);
+    write(K.totales, totalesRuta);
     write(K.obs, incidenciasPedido);
     write(K.cruzadas, posicionesCruzadas.current);
     write(K.franjas, franjasManuales.current);
@@ -190,7 +252,7 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     } catch {
       /* quota */
     }
-  }, [hidratado, baseDatos, pending, completed, issues, incidenciasPedido]);
+  }, [hidratado, baseDatos, paradas, totalesRuta, incidenciasPedido]);
 
   useEffect(() => {
     if (hidratado) write(K.pedidos, pedidosData);
@@ -225,27 +287,29 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /* ── Selectores derivados ── */
+  const pending = useMemo(() => pendientesDe(paradas), [paradas]);
+  const completed = useMemo(() => entregadasDe(paradas), [paradas]);
+  const issues = useMemo(() => incidenciasDe(paradas), [paradas]);
+
   /* ── Orden aprendido ── */
-  const persistirOrden = useCallback(
-    (lista: Parada[], base: Cliente[]) => {
-      const nuevaBase = base.map((c) => ({ ...c }));
-      lista.forEach((item) => {
-        if (item.esPrestado) {
-          if (!posicionesCruzadas.current[item.ruta]) posicionesCruzadas.current[item.ruta] = {};
-          posicionesCruzadas.current[item.ruta]![item.codigo] = item.orden;
-          item.sinUbicar = false;
-        } else {
-          const idx = nuevaBase.findIndex((b) => b.codigo === item.codigo);
-          if (idx > -1) nuevaBase[idx]!.orden = item.orden;
-          if (item.esNuevo) item.sinUbicar = false;
-        }
-        if (!franjasManuales.current[item.ruta]) franjasManuales.current[item.ruta] = {};
-        franjasManuales.current[item.ruta]![item.codigo] = item.franja;
-      });
-      return nuevaBase;
-    },
-    [],
-  );
+  const persistirOrden = useCallback((lista: Parada[], base: Cliente[]) => {
+    const nuevaBase = base.map((c) => ({ ...c }));
+    lista.forEach((item) => {
+      if (item.esPrestado) {
+        if (!posicionesCruzadas.current[item.ruta]) posicionesCruzadas.current[item.ruta] = {};
+        posicionesCruzadas.current[item.ruta]![item.codigo] = item.orden;
+        item.sinUbicar = false;
+      } else {
+        const idx = nuevaBase.findIndex((b) => b.codigo === item.codigo);
+        if (idx > -1) nuevaBase[idx]!.orden = item.orden;
+        if (item.esNuevo) item.sinUbicar = false;
+      }
+      if (!franjasManuales.current[item.ruta]) franjasManuales.current[item.ruta] = {};
+      franjasManuales.current[item.ruta]![item.codigo] = item.franja;
+    });
+    return nuevaBase;
+  }, []);
 
   const procesarRuta = useCallback(
     (texto: string): ResultadoRuta => {
@@ -256,10 +320,13 @@ export function RutasProvider({ children }: { children: ReactNode }) {
         franjasManuales.current,
       );
       if (res.ok) {
+        const nuevas = res.pending!;
+        const totales = totalesDesdeParadas(nuevas);
         setBaseDatos(res.baseDatos!);
-        setPending(res.pending!);
-        setCompleted([]);
-        setIssues([]);
+        totalesRef.current = totales;
+        setTotalesRuta(totales);
+        setParadasState(nuevas);
+        setAviso(null);
       }
       return res;
     },
@@ -274,47 +341,34 @@ export function RutasProvider({ children }: { children: ReactNode }) {
 
   const marcarEntregado = useCallback(
     (id: string, cobrado?: boolean) => {
-      const i = pending.findIndex((c) => c.id === id);
-      if (i === -1) return;
-      const cliente = { ...pending[i]! };
-      if (cliente.cobro_monto) {
-        cliente.cobro_cobrado = cliente.cobro_obligatorio ? true : !!cobrado;
-      }
-      setCompleted((c) => [...c, cliente]);
-      setPending((p) => p.filter((x) => x.id !== id));
+      setParadas((prev) =>
+        prev.map((p) => {
+          if (p.id !== id || p.estado === "entregado") return p;
+          const cobro_cobrado = p.cobro_monto
+            ? p.cobro_obligatorio
+              ? true
+              : !!cobrado
+            : p.cobro_cobrado;
+          return { ...p, estado: "entregado", cobro_cobrado };
+        }),
+      );
     },
-    [pending],
+    [setParadas],
   );
 
   const marcarIncidencia = useCallback(
     (id: string) => {
-      const i = pending.findIndex((c) => c.id === id);
-      if (i === -1) return;
-      const cliente = pending[i]!;
-      setIssues((s) => [...s, cliente]);
-      setPending((p) => p.filter((x) => x.id !== id));
+      setParadas((prev) => cambiarEstado(prev, id, "incidencia"));
     },
-    [pending],
+    [setParadas],
   );
 
   const recuperarCliente = useCallback(
-    (id: string, origen: "done" | "issue") => {
-      const origenLista = origen === "done" ? completed : issues;
-      const i = origenLista.findIndex((c) => c.id === id);
-      if (i === -1) return;
-      const item = origenLista[i]!;
-      const setterOrigen = origen === "done" ? setCompleted : setIssues;
-      setterOrigen((prev) => prev.filter((x) => x.id !== id));
-      setPending((p) =>
-        [...p, item].sort((a, b) => {
-          const ra = FRANJA_RANK[a.franja] ?? 2;
-          const rb = FRANJA_RANK[b.franja] ?? 2;
-          if (ra !== rb) return ra - rb;
-          return a.orden - b.orden;
-        }),
-      );
+    (id: string, _origen: "done" | "issue") => {
+      void _origen;
+      setParadas((prev) => cambiarEstado(prev, id, "pendiente"));
     },
-    [completed, issues],
+    [setParadas],
   );
 
   const indiceFinFranja = (lista: Parada[], franja: Franja) => {
@@ -329,12 +383,10 @@ export function RutasProvider({ children }: { children: ReactNode }) {
 
   const guardarHorario = useCallback(
     (id: string, horario: string, nota: string, siempre: boolean) => {
-      setPending((prev) => {
-        const actualIdx = prev.findIndex((p) => p.id === id);
-        if (actualIdx === -1) return prev;
-        const item: Parada = { ...prev[actualIdx]! };
-        item.horario = horario;
-        item.franja = calcularFranja(horario);
+      setParadas((prev) => {
+        const actual = prev.find((p) => p.id === id);
+        if (!actual) return prev;
+        const item: Parada = { ...actual, horario, franja: calcularFranja(horario) };
 
         if (siempre) {
           setBaseDatos((base) =>
@@ -350,51 +402,56 @@ export function RutasProvider({ children }: { children: ReactNode }) {
           item.nota_hoy = nota;
         }
 
-        const lista = prev.filter((_, i) => i !== actualIdx);
-        const destIdx = indiceFinFranja(lista, item.franja);
-        lista.splice(destIdx, 0, item);
-        lista.forEach((c, i) => (c.orden = i + 1));
+        // Reordena sólo el subconjunto pendiente, sin duplicar registros.
+        const otros = prev.filter((p) => p.id !== id);
+        const pend = otros.filter((p) => p.estado === "pendiente");
+        pend.splice(indiceFinFranja(pend, item.franja), 0, item);
+        pend.forEach((c, i) => (c.orden = i + 1));
 
         if (!franjasManuales.current[item.ruta]) franjasManuales.current[item.ruta] = {};
         franjasManuales.current[item.ruta]![item.codigo] = item.franja;
-        return lista.map((c) => ({ ...c }));
+
+        const restantes = otros.filter((p) => p.estado !== "pendiente");
+        return [...pend, ...restantes];
       });
     },
-    [],
+    [setParadas],
+  );
+
+  /** Reordena por id: los índices recibidos son posiciones en la lista pendiente. */
+  const reordenar = useCallback(
+    (fromIdx: number, toIdx: number | null, franjaDestino: Franja) => {
+      setParadas((prev) => {
+        const pend = prev.filter((p) => p.estado === "pendiente").map((c) => ({ ...c }));
+        const otros = prev.filter((p) => p.estado !== "pendiente");
+        if (fromIdx < 0 || fromIdx >= pend.length) return prev;
+        const [moved] = pend.splice(fromIdx, 1);
+        if (!moved) return prev;
+        moved.franja = franjaDestino;
+        const destino =
+          toIdx === null
+            ? indiceFinFranja(pend, franjaDestino)
+            : Math.max(0, Math.min(toIdx, pend.length));
+        pend.splice(destino, 0, moved);
+        pend.forEach((c, i) => (c.orden = i + 1));
+        setBaseDatos((base) => persistirOrden(pend, base));
+        return [...pend, ...otros];
+      });
+    },
+    [persistirOrden, setParadas],
   );
 
   const moverParada = useCallback(
     (fromIdx: number, toIdx: number, franjaDestino: Franja) => {
-      setPending((prev) => {
-        if (fromIdx === toIdx || fromIdx < 0 || fromIdx >= prev.length) return prev;
-        const lista = prev.map((c) => ({ ...c }));
-        const [moved] = lista.splice(fromIdx, 1);
-        if (!moved) return prev;
-        lista.splice(toIdx, 0, moved);
-        moved.franja = franjaDestino;
-        lista.forEach((c, i) => (c.orden = i + 1));
-        setBaseDatos((base) => persistirOrden(lista, base));
-        return lista;
-      });
+      if (fromIdx === toIdx) return;
+      reordenar(fromIdx, toIdx, franjaDestino);
     },
-    [persistirOrden],
+    [reordenar],
   );
 
   const moverAFranja = useCallback(
-    (fromIdx: number, franjaDestino: Franja) => {
-      setPending((prev) => {
-        if (fromIdx < 0 || fromIdx >= prev.length) return prev;
-        const lista = prev.map((c) => ({ ...c }));
-        const [moved] = lista.splice(fromIdx, 1);
-        if (!moved) return prev;
-        moved.franja = franjaDestino;
-        lista.splice(indiceFinFranja(lista, franjaDestino), 0, moved);
-        lista.forEach((c, i) => (c.orden = i + 1));
-        setBaseDatos((base) => persistirOrden(lista, base));
-        return lista;
-      });
-    },
-    [persistirOrden],
+    (fromIdx: number, franjaDestino: Franja) => reordenar(fromIdx, null, franjaDestino),
+    [reordenar],
   );
 
   const addObservacion = useCallback((parada: Parada, texto: string) => {
@@ -458,9 +515,8 @@ export function RutasProvider({ children }: { children: ReactNode }) {
   const exportarSesion = useCallback(() => {
     const sesion: SesionExport = {
       fecha: new Date().toDateString(),
-      pending,
-      completed,
-      issues,
+      paradas,
+      totalesRuta,
       pedidosData,
       baseDatos,
       posicionesCruzadas: posicionesCruzadas.current,
@@ -477,7 +533,7 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [pending, completed, issues, pedidosData, baseDatos, incidenciasPedido]);
+  }, [paradas, totalesRuta, pedidosData, baseDatos, incidenciasPedido]);
 
   const importarSesion = useCallback((file: File) => {
     return new Promise<string>((resolve, reject) => {
@@ -486,20 +542,27 @@ export function RutasProvider({ children }: { children: ReactNode }) {
         try {
           const sesion = JSON.parse(String(e.target?.result)) as SesionExport;
           if (!sesion.fecha) throw new Error("Archivo no válido");
-          const p = sanearPending(sesion.pending || []);
-          const c = sanearPending(sesion.completed || []);
-          const i = sanearPending(sesion.issues || []);
-          setPending(p);
-          setCompleted(c);
-          setIssues(i);
+          const origen = sesion.paradas?.length
+            ? { paradas: sesion.paradas }
+            : migrarDesdeListas(
+                sesion.pending ?? [],
+                sesion.completed ?? [],
+                sesion.issues ?? [],
+              );
+          const rep = repararEstado(origen.paradas, sesion.totalesRuta ?? null);
+          setParadasState(rep.paradas);
+          setTotalesRuta(rep.totales);
+          totalesRef.current = rep.totales;
+          setAviso(rep.mensaje);
           setPedidosData(sesion.pedidosData || {});
           if (sesion.baseDatos?.length) setBaseDatos(sesion.baseDatos);
           if (sesion.posicionesCruzadas) posicionesCruzadas.current = sesion.posicionesCruzadas;
           if (sesion.franjasManuales) franjasManuales.current = sesion.franjasManuales;
-          if (sesion.incidenciasPedido)
-            setIncidencias(limpiarAntiguas(sesion.incidenciasPedido));
+          if (sesion.incidenciasPedido) setIncidencias(limpiarAntiguas(sesion.incidenciasPedido));
           resolve(
-            `${p.length} pendientes · ${c.length} entregados · ${i.length} incidencias`,
+            `${pendientesDe(rep.paradas).length} pendientes · ${
+              entregadasDe(rep.paradas).length
+            } entregados · ${incidenciasDe(rep.paradas).length} incidencias`,
           );
         } catch (err) {
           reject(err instanceof Error ? err : new Error("Error al importar"));
@@ -509,10 +572,14 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const descartarAviso = useCallback(() => setAviso(null), []);
+
   const value = useMemo<RutasStore>(
     () => ({
       hidratado,
       baseDatos,
+      paradas,
+      totalesRuta,
       pending,
       completed,
       issues,
@@ -523,6 +590,8 @@ export function RutasProvider({ children }: { children: ReactNode }) {
       currentRuta,
       vista,
       tema,
+      avisoReparacion,
+      descartarAviso,
       setCurrentRuta,
       setVista,
       setTema: setTemaState,
@@ -548,6 +617,8 @@ export function RutasProvider({ children }: { children: ReactNode }) {
     [
       hidratado,
       baseDatos,
+      paradas,
+      totalesRuta,
       pending,
       completed,
       issues,
@@ -558,6 +629,8 @@ export function RutasProvider({ children }: { children: ReactNode }) {
       currentRuta,
       vista,
       tema,
+      avisoReparacion,
+      descartarAviso,
       setVista,
       procesarRuta,
       procesarPedidos,

@@ -126,6 +126,8 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         {children}
         <Scripts />
+        <script dangerouslySetInnerHTML={{ __html: REGISTRAR_SW }} />
+
       </body>
     </html>
   );

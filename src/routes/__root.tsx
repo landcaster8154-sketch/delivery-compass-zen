@@ -113,6 +113,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 const TEMA_INICIAL = `(function(){try{var t=localStorage.getItem('rr_tema');var d=t!=='light';var r=document.documentElement;r.classList.toggle('dark',d);r.classList.toggle('light',!d);r.style.backgroundColor=d?'#0c0d12':'#f6f7fb';}catch(e){document.documentElement.classList.add('dark');}})();`;
 
+const REGISTRAR_SW = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}`;
+
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className="dark" style={{ backgroundColor: "#0c0d12" }}>

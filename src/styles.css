@@ -95,7 +95,8 @@
 
   --shadow-panel-v: 0 24px 60px -24px oklch(0 0 0 / 0.7);
   --shadow-card-v: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 8px 20px -14px oklch(0 0 0 / 0.8);
-  --shadow-music-control-v: 0 2px 0 0 oklch(1 0 0 / 0.18) inset, 0 10px 24px -10px oklch(0.35 0.16 264 / 0.8);
+  --shadow-music-control-v:
+    0 2px 0 0 oklch(1 0 0 / 0.18) inset, 0 10px 24px -10px oklch(0.35 0.16 264 / 0.8);
 }
 
 .light {
@@ -134,8 +135,10 @@
   --fullscreen-muted: oklch(0.4 0 0);
 
   --shadow-panel-v: 0 24px 60px -28px oklch(0.2 0.03 264 / 0.28);
-  --shadow-card-v: 0 1px 2px 0 oklch(0.2 0.03 264 / 0.06), 0 8px 18px -16px oklch(0.2 0.03 264 / 0.4);
-  --shadow-music-control-v: 0 2px 0 0 oklch(1 0 0 / 0.22) inset, 0 10px 24px -12px oklch(0.35 0.16 264 / 0.45);
+  --shadow-card-v:
+    0 1px 2px 0 oklch(0.2 0.03 264 / 0.06), 0 8px 18px -16px oklch(0.2 0.03 264 / 0.4);
+  --shadow-music-control-v:
+    0 2px 0 0 oklch(1 0 0 / 0.22) inset, 0 10px 24px -12px oklch(0.35 0.16 264 / 0.45);
 }
 
 @layer base {
@@ -204,8 +207,12 @@
   border: 1px solid var(--color-border);
   background-color: color-mix(in oklab, var(--color-elevated) 82%, transparent);
   box-shadow: var(--shadow-card-v);
-  transition: transform 120ms ease, background-color 120ms ease;
-  &:active { transform: scale(0.95); }
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease;
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 @utility music-row-action {
@@ -234,12 +241,23 @@
     grid-template-columns: minmax(21rem, 1.45fr) minmax(12rem, 0.85fr) minmax(20rem, 1fr);
     overflow: hidden;
   }
-  .music-library { border-right: 1px solid var(--color-border); border-bottom: 0; }
-  .music-cover { border-right: 1px solid var(--color-border); }
-  .music-controls { border-top: 0; }
+  .music-library {
+    border-right: 1px solid var(--color-border);
+    border-bottom: 0;
+  }
+  .music-cover {
+    border-right: 1px solid var(--color-border);
+  }
+  .music-controls {
+    border-top: 0;
+  }
 }
 
 @media (max-height: 620px) and (orientation: landscape) {
-  .music-cover-art { max-width: 34vh; }
-  .music-controls { padding-block: 0.5rem; }
+  .music-cover-art {
+    max-width: 34vh;
+  }
+  .music-controls {
+    padding-block: 0.5rem;
+  }
 }

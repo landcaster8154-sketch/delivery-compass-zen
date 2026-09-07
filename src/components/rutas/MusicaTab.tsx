@@ -86,7 +86,7 @@ export function MusicaTab() {
 
   const Controles = () => (
     <section
-      className="flex min-h-0 flex-col justify-center border-t border-border bg-elevated/70 px-4 py-3 music-controls"
+      className="music-controls flex min-h-0 flex-col justify-center border-t px-4 py-3"
       aria-label="Controles de reproducción"
     >
       <div className="min-w-0">
@@ -95,7 +95,7 @@ export function MusicaTab() {
             <p className="truncate font-display text-lg font-bold">
               {pista?.nombre ?? "Nada en reproducción"}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="music-metadata truncate text-xs">
               {pista?.carpeta ?? "Selecciona una canción"}
             </p>
           </div>
@@ -105,7 +105,7 @@ export function MusicaTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="tabular w-10 text-right text-xs text-muted-foreground">
+          <span className="music-metadata tabular w-10 text-right text-xs">
             {tiempo(pos)}
           </span>
           <input
@@ -121,7 +121,7 @@ export function MusicaTab() {
             }}
             aria-label="Progreso"
           />
-          <span className="tabular w-10 text-xs text-muted-foreground">{tiempo(dur)}</span>
+          <span className="music-metadata tabular w-10 text-xs">{tiempo(dur)}</span>
         </div>
 
         <div className="mt-4 grid grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2">
@@ -131,7 +131,7 @@ export function MusicaTab() {
             aria-pressed={aleatorio}
             className={cn(
               "music-touch justify-self-start",
-              aleatorio ? "bg-primary/15 text-accent" : "text-muted-foreground",
+              aleatorio ? "music-touch-active" : "music-touch-inactive",
             )}
           >
             <Shuffle className="size-5" />
@@ -142,7 +142,7 @@ export function MusicaTab() {
           <button
             onClick={togglePlay}
             disabled={!pista}
-            className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-music-control transition-transform active:scale-95 disabled:opacity-40"
+            className="music-play-button flex size-16 items-center justify-center rounded-full shadow-music-control transition-transform active:scale-95 disabled:opacity-40"
             title={sonando ? "Pausar" : "Reproducir"}
           >
             {sonando ? <Pause className="size-8" /> : <Play className="size-8 translate-x-0.5" />}
@@ -161,15 +161,15 @@ export function MusicaTab() {
             }
             className={cn(
               "music-touch justify-self-end",
-              repeticion === "off" ? "text-muted-foreground" : "bg-primary/15 text-accent",
+              repeticion === "off" ? "music-touch-inactive" : "music-touch-active",
             )}
           >
             {repeticion === "one" ? <Repeat1 className="size-5" /> : <Repeat className="size-5" />}
           </button>
         </div>
 
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-secondary/50 px-3 py-2">
-          <Volume2 className="size-4 shrink-0 text-subtle" />
+        <div className="music-volume mt-4 flex items-center gap-3 rounded-lg border px-3 py-2">
+          <Volume2 className="music-metadata size-4 shrink-0" />
           <input
             type="range"
             min={0}
@@ -195,10 +195,10 @@ export function MusicaTab() {
 
       <div className="music-layout min-h-0 flex-1">
         <section
-          className="flex min-h-0 flex-col border-b border-border bg-card/45 music-library"
+          className="music-library flex min-h-0 flex-col border-b"
           aria-label="Biblioteca de música"
         >
-          <header className="border-b border-border px-3 py-2">
+          <header className="music-library-header border-b px-3 py-2">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-accent">
@@ -206,7 +206,7 @@ export function MusicaTab() {
                 </span>
                 <div className="min-w-0 leading-tight">
                   <h2 className="truncate font-display text-sm font-bold">Biblioteca</h2>
-                  <p className="truncate text-[11px] text-muted-foreground">
+                  <p className="music-metadata truncate text-[11px]">
                     {pistas.length} canciones · {carpetas.length} carpetas
                   </p>
                 </div>
@@ -253,11 +253,11 @@ export function MusicaTab() {
           </header>
 
           {carpetas.length > 0 && (
-            <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-border px-3 py-1.5">
+            <div className="music-folders no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b px-3 py-1.5">
               <button
                 onClick={() => setCarpeta("__todas__")}
                 className={cn(
-                  "shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-semibold",
+                  "music-folder-button shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-semibold",
                   carpeta === "__todas__"
                     ? "border-primary bg-primary/15 text-accent"
                     : "border-border text-muted-foreground",
@@ -270,7 +270,7 @@ export function MusicaTab() {
                   <button
                     onClick={() => setCarpeta(nombre)}
                     className={cn(
-                      "rounded-l-md border border-r-0 px-2.5 py-1.5 text-xs font-semibold",
+                      "music-folder-button rounded-l-md border border-r-0 px-2.5 py-1.5 text-xs font-semibold",
                       carpeta === nombre
                         ? "border-primary bg-primary/15 text-accent"
                         : "border-border text-muted-foreground",
@@ -281,7 +281,7 @@ export function MusicaTab() {
                   <button
                     onClick={() => pedirBorrarCarpeta(nombre)}
                     title={`Eliminar carpeta ${nombre}`}
-                    className="rounded-r-md border px-2 text-subtle hover:text-destructive"
+                    className="music-folder-delete rounded-r-md border px-2"
                   >
                     <FolderX className="size-3.5" />
                   </button>
@@ -310,24 +310,24 @@ export function MusicaTab() {
                     <li
                       key={p.id}
                       className={cn(
-                        "group flex min-h-14 items-center gap-2 px-3 py-1.5",
-                        activo ? "bg-primary/12" : "hover:bg-secondary/60",
+                        "music-track-row group flex min-h-14 items-center gap-2 px-3 py-1.5",
+                        activo && "music-track-row-active",
                       )}
                     >
                       <button
                         onClick={() => (activo ? togglePlay() : reproducir(p.id))}
                         className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                       >
-                        <span className="relative size-10 shrink-0 overflow-hidden rounded-md border border-border bg-elevated">
+                          <span className="music-track-cover relative size-10 shrink-0 overflow-hidden rounded-md border">
                           {cover ? (
                             <img src={cover} alt="" className="size-full object-cover" />
                           ) : (
-                            <span className="flex size-full items-center justify-center text-subtle">
+                              <span className="music-metadata flex size-full items-center justify-center">
                               <Music className="size-4" />
                             </span>
                           )}
                           {activo && (
-                            <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-accent">
+                            <span className="music-track-playing absolute inset-0 flex items-center justify-center">
                               {sonando ? <Pause className="size-4" /> : <Play className="size-4" />}
                             </span>
                           )}
@@ -336,12 +336,12 @@ export function MusicaTab() {
                           <span
                             className={cn(
                               "block truncate text-sm font-semibold",
-                              activo && "text-accent",
+                              activo && "music-track-title-active",
                             )}
                           >
                             {p.nombre}
                           </span>
-                          <span className="block truncate text-[11px] text-muted-foreground">
+                          <span className="music-metadata block truncate text-[11px]">
                             {p.carpeta}
                           </span>
                         </span>
@@ -349,7 +349,7 @@ export function MusicaTab() {
                       <button
                         onClick={() => void eliminarPista(p.id)}
                         title="Eliminar canción"
-                        className="music-row-action text-subtle hover:text-destructive"
+                        className="music-row-action music-delete-action"
                       >
                         <Trash2 className="size-4" />
                       </button>
@@ -362,7 +362,7 @@ export function MusicaTab() {
         </section>
 
         <section
-          className="flex min-h-0 items-center justify-center bg-secondary/30 px-4 py-3 music-cover"
+          className="music-cover flex min-h-0 items-center justify-center px-4 py-3"
           aria-label="Carátula actual"
         >
           <button
@@ -370,7 +370,7 @@ export function MusicaTab() {
             disabled={!pista}
             className="group flex w-full flex-col items-center disabled:cursor-default"
           >
-            <span className="music-cover-art aspect-square w-full max-w-[40vh] overflow-hidden rounded-2xl border border-border bg-card shadow-panel transition-transform group-active:scale-[0.98]">
+            <span className="music-cover-art aspect-square w-full max-w-[40vh] overflow-hidden rounded-2xl border shadow-panel transition-transform group-active:scale-[0.98]">
               {coverActual ? (
                 <img
                   src={coverActual}
@@ -378,7 +378,7 @@ export function MusicaTab() {
                   className="size-full object-contain"
                 />
               ) : (
-                <span className="flex size-full items-center justify-center text-subtle">
+                <span className="music-metadata flex size-full items-center justify-center">
                   <Disc3
                     className={cn("size-16", sonando && "animate-spin [animation-duration:6s]")}
                   />
@@ -388,7 +388,7 @@ export function MusicaTab() {
             <span className="mt-2 max-w-full truncate font-display text-sm font-bold">
               {pista?.nombre ?? "Sin reproducción"}
             </span>
-            <span className="max-w-full truncate text-[11px] text-muted-foreground">
+            <span className="music-metadata max-w-full truncate text-[11px]">
               {pista?.carpeta ?? "La carátula aparecerá aquí"}
             </span>
           </button>
@@ -406,7 +406,7 @@ export function MusicaTab() {
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") setPortada(false);
           }}
-          className="fixed inset-0 z-[9999] flex cursor-pointer items-center justify-center bg-fullscreen"
+          className="music-fullscreen fixed inset-0 z-[9999] flex cursor-pointer items-center justify-center"
         >
           {coverActual ? (
             <img

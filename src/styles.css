@@ -204,8 +204,8 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background-color: color-mix(in oklab, var(--color-elevated) 82%, transparent);
+  border: 1px solid #2a2f3d;
+  background-color: #222836;
   box-shadow: var(--shadow-card-v);
   transition:
     transform 120ms ease,
@@ -228,6 +228,146 @@
 .music-layout {
   display: flex;
   flex-direction: column;
+  background-color: #10131a;
+  color: #f1f5f9;
+}
+
+/*
+ * Chrome/WebView antiguo: esta capa usa colores sRGB planos y no depende de
+ * OKLCH, color-mix, filtros ni transparencias para conservar el contraste.
+ */
+.music-library {
+  background-color: #151923;
+  border-color: #2a2f3d;
+}
+
+.music-library-header,
+.music-folders {
+  background-color: #191e29;
+  border-color: #2a2f3d;
+}
+
+.music-cover {
+  background-color: #11151e;
+  border-color: #2a2f3d;
+}
+
+.music-cover-art {
+  background-color: #191e29;
+  border-color: #2a2f3d;
+}
+
+.music-controls {
+  background-color: #1b202c;
+  border-color: #2a2f3d;
+}
+
+.music-metadata,
+.music-touch-inactive {
+  color: #94a3b8;
+}
+
+.music-volume {
+  background-color: #222836;
+  border-color: #2a2f3d;
+}
+
+.music-folder-button {
+  background-color: #191e29;
+  border-color: #2a2f3d;
+  color: #cbd5e1;
+}
+
+.music-folder-button:hover,
+.music-folder-button:focus-visible,
+.music-folder-button:active {
+  background-color: #293247;
+  border-color: #4f6da8;
+  color: #f8fafc;
+}
+
+.music-folder-delete {
+  background-color: #191e29;
+  border-color: #2a2f3d;
+  color: #94a3b8;
+}
+
+.music-folder-delete:hover,
+.music-folder-delete:focus-visible,
+.music-folder-delete:active,
+.music-delete-action:hover,
+.music-delete-action:focus-visible,
+.music-delete-action:active {
+  background-color: #3b1f27;
+  color: #fda4af;
+}
+
+.music-track-row {
+  background-color: #151923;
+  border-color: #2a2f3d;
+}
+
+.music-track-row:hover,
+.music-track-row:focus-within {
+  background-color: #222836;
+}
+
+.music-track-row:active,
+.music-track-row-active,
+.music-track-row-active:hover {
+  background-color: #26334d;
+}
+
+.music-track-cover {
+  background-color: #202633;
+  border-color: #2a2f3d;
+}
+
+.music-track-playing {
+  background-color: #10131a;
+  color: #93b4ff;
+}
+
+.music-track-title-active {
+  color: #a9c3ff;
+}
+
+.music-delete-action {
+  color: #94a3b8;
+}
+
+.music-touch:hover,
+.music-touch:focus-visible,
+.music-touch:active {
+  background-color: #30394b;
+  border-color: #52617d;
+  color: #f8fafc;
+}
+
+.music-touch-active {
+  background-color: #29416f;
+  border-color: #4f6da8;
+  color: #c7d7ff;
+}
+
+.music-play-button {
+  background-color: #4f6fce;
+  color: #ffffff;
+  border: 1px solid #7894e8;
+}
+
+.music-play-button:hover,
+.music-play-button:focus-visible {
+  background-color: #5c7bda;
+}
+
+.music-play-button:active {
+  background-color: #405faf;
+}
+
+.music-fullscreen {
+  background: #000000;
+  background-color: #000000;
 }
 
 .music-cover,
@@ -242,11 +382,11 @@
     overflow: hidden;
   }
   .music-library {
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid #2a2f3d;
     border-bottom: 0;
   }
   .music-cover {
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid #2a2f3d;
   }
   .music-controls {
     border-top: 0;

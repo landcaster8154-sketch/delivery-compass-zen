@@ -417,7 +417,7 @@ export function MusicaTab() {
           ) : (
             <Disc3
               className={cn(
-                "size-24 text-fullscreen-muted",
+                "music-fullscreen-placeholder size-24",
                 sonando && "animate-spin [animation-duration:6s]",
               )}
             />

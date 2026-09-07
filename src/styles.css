@@ -370,6 +370,10 @@
   background-color: #000000;
 }
 
+.music-fullscreen-placeholder {
+  color: #64748b;
+}
+
 .music-cover,
 .music-controls {
   flex: none;

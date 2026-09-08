@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink, ShieldCheck, Ticket, X } from "lucide-react";
+import { AlertTriangle, ExternalLink, MapPinOff, ShieldCheck, Ticket, X } from "lucide-react";
 
 import { Btn } from "./primitives";
 import { cn } from "@/lib/utils";
@@ -6,7 +6,24 @@ import { useDum } from "@/lib/rutas/dum";
 
 export function DumBadge({ id, className }: { id: string; className?: string }) {
   const d = useDum();
+  const requiere = d.requiereDum(id);
   const activo = d.estadoDum(id) === "activo";
+
+  if (!requiere) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground",
+          className,
+        )}
+        style={{ borderColor: "#2A2F3D", color: "#94A3B8" }}
+      >
+        <MapPinOff className="size-4 shrink-0" />
+        Zona libre / Extrarradio
+      </span>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -21,10 +38,53 @@ export function DumBadge({ id, className }: { id: string; className?: string }) 
       )}
     >
       <Ticket className="size-5 shrink-0" />
-      {activo ? "Tique DUM Activo" : "DUM cerrado"}
+      {activo ? "TIQUE DUM ACTIVO" : "DUM cerrado"}
     </button>
   );
 }
+
+/** Interruptor táctil grande (>=44px) para marcar si la parada está en zona DUM. */
+export function DumSwitch({ id, className }: { id: string; className?: string }) {
+  const d = useDum();
+  const requiere = d.requiereDum(id);
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={requiere}
+      aria-label="Zona DUM para esta parada"
+      onClick={() => d.setRequiereDum(id, !requiere)}
+      className={cn(
+        "flex min-h-[3rem] w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors",
+        requiere ? "border-warning/50 bg-warning/10" : "border-border bg-card",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "relative inline-flex h-11 w-[4.5rem] shrink-0 items-center rounded-full border transition-colors",
+          requiere ? "border-warning/60 bg-warning/30" : "border-border bg-elevated",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-1 size-9 rounded-full transition-all",
+            requiere ? "left-[2rem] bg-warning" : "left-1 bg-muted-foreground",
+          )}
+        />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-black uppercase tracking-wide">
+          {requiere ? "DUM activado" : "DUM desactivado"}
+        </span>
+        <span className="block text-xs font-semibold text-muted-foreground">
+          {requiere ? "Se pedirá cerrar el tique" : "Zona libre / Extrarradio"}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 
 /**
  * Aviso de altísima visibilidad antes de finalizar una parada.

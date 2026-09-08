@@ -24,6 +24,17 @@ export function ConduccionView({ onSalir }: { onSalir: () => void }) {
     setDumAbierto(false);
   };
 
+  /** Solo pide cerrar el tique si la parada está marcada como zona DUM. */
+  const pulsarEntregado = () => {
+    if (!actual) return;
+    if (!d.requiereDum(actual.id)) {
+      finalizar();
+      return;
+    }
+    setDumAbierto(true);
+  };
+
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background">
       <div className="flex items-center gap-3 border-b border-border bg-elevated px-4 py-2">

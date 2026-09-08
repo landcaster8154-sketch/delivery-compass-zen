@@ -79,16 +79,21 @@ export function fechaTrafico(ts: number) {
 
 interface DumStore {
   estados: Record<string, EstadoDum>;
+  requiere: Record<string, boolean>;
   dumUrl: string;
   trafico: Record<string, TraficoDato>;
   tiempos: Record<string, number>;
   registrarEntrega: (id: string) => void;
   estadoDum: (id: string) => EstadoDum;
   setEstadoDum: (id: string, estado: EstadoDum) => void;
+  /** ¿Esta parada está en zona DUM? Por defecto sí. */
+  requiereDum: (id: string) => boolean;
+  setRequiereDum: (id: string, valor: boolean) => void;
   setDumUrl: (url: string) => void;
   setTrafico: (ruta: string, estado: EstadoTrafico) => void;
   abrirDum: () => void;
 }
+
 
 const Ctx = createContext<DumStore | null>(null);
 

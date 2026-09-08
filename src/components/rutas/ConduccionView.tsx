@@ -82,7 +82,7 @@ export function ConduccionView({ onSalir }: { onSalir: () => void }) {
           <div className="flex shrink-0 flex-col gap-3 landscape:w-[38%]">
             <Btn
               tone="success"
-              onClick={() => setDumAbierto(true)}
+              onClick={pulsarEntregado}
               className="min-h-[45vh] w-full rounded-3xl border-4 text-5xl font-black landscape:min-h-0 landscape:flex-1"
             >
               <Check className="size-14" /> ENTREGADO

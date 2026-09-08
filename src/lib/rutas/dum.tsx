@@ -43,26 +43,24 @@ function escribir(key: string, value: unknown) {
   }
 }
 
-export const TRAFICO_META: Record<
-  EstadoTrafico,
-  { label: string; clase: string; punto: string }
-> = {
-  fluido: {
-    label: "Fluido",
-    clase: "border-success/40 bg-success/12 text-success",
-    punto: "bg-success",
-  },
-  retencion: {
-    label: "Retención",
-    clase: "border-warning/40 bg-warning/12 text-warning",
-    punto: "bg-warning",
-  },
-  atasco: {
-    label: "Atasco grave",
-    clase: "border-destructive/40 bg-destructive/12 text-destructive",
-    punto: "bg-destructive",
-  },
-};
+export const TRAFICO_META: Record<EstadoTrafico, { label: string; clase: string; punto: string }> =
+  {
+    fluido: {
+      label: "Fluido",
+      clase: "border-success/40 bg-success/12 text-success",
+      punto: "bg-success",
+    },
+    retencion: {
+      label: "Retención",
+      clase: "border-warning/40 bg-warning/12 text-warning",
+      punto: "bg-warning",
+    },
+    atasco: {
+      label: "Atasco grave",
+      clase: "border-destructive/40 bg-destructive/12 text-destructive",
+      punto: "bg-destructive",
+    },
+  };
 
 export function traficoDesactualizado(ts: number) {
   return Date.now() - ts > 3 * 60 * 60 * 1000;
@@ -94,7 +92,6 @@ interface DumStore {
   abrirDum: () => void;
 }
 
-
 const Ctx = createContext<DumStore | null>(null);
 
 export function useDum() {
@@ -113,9 +110,7 @@ export function DumProvider({ children }: { children: ReactNode }) {
   const [tiempos, setTiempos] = useState<Record<string, number>>(() =>
     leer<Record<string, number>>(K_TIEMPOS, {}),
   );
-  const [dumUrl, setDumUrlState] = useState<string>(() =>
-    leer<string>(K_DUM_URL, DUM_URL_DEFECTO),
-  );
+  const [dumUrl, setDumUrlState] = useState<string>(() => leer<string>(K_DUM_URL, DUM_URL_DEFECTO));
   const [requiere, setRequiereState] = useState<Record<string, boolean>>(() =>
     leer<Record<string, boolean>>(K_DUM_REQ, {}),
   );
@@ -136,7 +131,6 @@ export function DumProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
-
 
   const registrarEntrega = useCallback((id: string) => {
     setTiempos((prev) => {

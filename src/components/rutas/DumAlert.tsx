@@ -85,7 +85,6 @@ export function DumSwitch({ id, className }: { id: string; className?: string })
   );
 }
 
-
 /**
  * Aviso de altísima visibilidad antes de finalizar una parada.
  * Nunca finaliza la parada por sí solo: solo el botón «Ya lo he cerrado».

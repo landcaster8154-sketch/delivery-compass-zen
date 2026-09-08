@@ -34,7 +34,6 @@ export function ConduccionView({ onSalir }: { onSalir: () => void }) {
     setDumAbierto(true);
   };
 
-
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-background">
       <div className="flex items-center gap-3 border-b border-border bg-elevated px-4 py-2">

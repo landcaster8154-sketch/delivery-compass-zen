@@ -17,6 +17,7 @@ export interface TraficoDato {
 }
 
 const K_DUM = "rr_dum_estados";
+const K_DUM_REQ = "rr_dum_requiere";
 const K_DUM_URL = "rr_dum_url";
 const K_TRAFICO = "rr_trafico";
 const K_TIEMPOS = "rr_tiempos_entrega";

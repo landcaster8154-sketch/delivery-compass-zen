@@ -537,6 +537,10 @@ function ParadaCard({
 
       {expandida && (
         <div className="space-y-2.5 border-t border-border bg-elevated/50 px-3 py-3">
+          <DumSwitch id={c.id} />
+          <div className="flex flex-wrap items-center gap-2">
+            <DumBadge id={c.id} />
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Btn tone="success" onClick={onEntregar}>
               <Check className="size-4" /> Entregado

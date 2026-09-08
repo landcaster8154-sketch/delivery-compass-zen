@@ -187,17 +187,32 @@ export function DumProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DumStore>(
     () => ({
       estados,
+      requiere,
       trafico,
       tiempos,
       dumUrl,
       registrarEntrega,
       estadoDum: (id: string) => estados[id] ?? "activo",
       setEstadoDum,
+      requiereDum: (id: string) => requiere[id] ?? true,
+      setRequiereDum,
       setDumUrl,
       setTrafico,
       abrirDum,
     }),
-    [estados, trafico, tiempos, dumUrl, registrarEntrega, setEstadoDum, setDumUrl, setTrafico, abrirDum],
+    [
+      estados,
+      requiere,
+      trafico,
+      tiempos,
+      dumUrl,
+      registrarEntrega,
+      setEstadoDum,
+      setRequiereDum,
+      setDumUrl,
+      setTrafico,
+      abrirDum,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

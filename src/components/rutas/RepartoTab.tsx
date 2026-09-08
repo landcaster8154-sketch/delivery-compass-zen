@@ -21,17 +21,12 @@ import {
 import { useMemo, useState } from "react";
 
 import { Badge, Btn, Card, EmptyState, Field, LinkBtn, Modal, TextArea } from "./primitives";
-import { DumAlertModal, DumBadge } from "./DumAlert";
+import { DumAlertModal, DumBadge, DumSwitch } from "./DumAlert";
 import { TraficoBadge, TraficoPanel } from "./TraficoPanel";
 import { TimelinePorRealizar } from "./TimelinePorRealizar";
 import { useDum } from "@/lib/rutas/dum";
 import { cn } from "@/lib/utils";
-import {
-  FRANJA_META,
-  FRANJA_ORDEN,
-  euro,
-  mapsUrl,
-} from "@/lib/rutas/logic";
+import { FRANJA_META, FRANJA_ORDEN, euro, mapsUrl } from "@/lib/rutas/logic";
 import { useRutas } from "@/lib/rutas/store";
 import type { Franja, Parada } from "@/lib/rutas/types";
 
@@ -59,7 +54,8 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
   const [cobroPrompt, setCobroPrompt] = useState<Parada | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  const filt = (l: Parada[]) => l.filter((c) => s.currentRuta === "all" || c.ruta === s.currentRuta);
+  const filt = (l: Parada[]) =>
+    l.filter((c) => s.currentRuta === "all" || c.ruta === s.currentRuta);
   const fp = filt(s.pending);
   const fd = filt(s.completed);
   const fi = filt(s.issues);
@@ -74,8 +70,14 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
     return set.sort();
   }, [s.pending, s.completed, s.issues]);
 
-  /** Paso 1: nunca finaliza directamente; primero el aviso DUM 360. */
-  const entregar = (p: Parada) => setDumParada(p);
+  /** Paso 1: aviso DUM solo si la parada está marcada como zona DUM. */
+  const entregar = (p: Parada) => {
+    if (!d.requiereDum(p.id)) {
+      finalizarParada(p);
+      return;
+    }
+    setDumParada(p);
+  };
 
   /** Paso 2: solo tras confirmar el aviso DUM. */
   const finalizarParada = (p: Parada) => {
@@ -213,90 +215,90 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
                   onIncidencia={(p) => s.marcarIncidencia(p.id)}
                 />
               ) : (
-              <>
-              {FRANJA_ORDEN.map((franja) => {
-                const items = fp.filter((c) => c.franja === franja);
-                const meta = FRANJA_META[franja];
-                return (
-                  <section key={franja} className="mb-6">
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => {
-                        if (dragIdx !== null) s.moverAFranja(dragIdx, franja);
-                        setDragIdx(null);
-                      }}
-                      className="mb-2.5 flex items-center gap-2"
-                    >
-                      <span className={cn("size-2 rounded-full", franjaDot[franja])} />
-                      <h2
-                        className={cn(
-                          "text-[11px] font-bold uppercase tracking-[0.14em]",
-                          franjaAccent[franja],
-                        )}
-                      >
-                        {meta.label}
-                      </h2>
-                      <span className="rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-bold tabular text-muted-foreground">
-                        {items.length}
-                      </span>
-                      <div className="ml-2 h-px flex-1 bg-border" />
-                    </div>
+                <>
+                  {FRANJA_ORDEN.map((franja) => {
+                    const items = fp.filter((c) => c.franja === franja);
+                    const meta = FRANJA_META[franja];
+                    return (
+                      <section key={franja} className="mb-6">
+                        <div
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => {
+                            if (dragIdx !== null) s.moverAFranja(dragIdx, franja);
+                            setDragIdx(null);
+                          }}
+                          className="mb-2.5 flex items-center gap-2"
+                        >
+                          <span className={cn("size-2 rounded-full", franjaDot[franja])} />
+                          <h2
+                            className={cn(
+                              "text-[11px] font-bold uppercase tracking-[0.14em]",
+                              franjaAccent[franja],
+                            )}
+                          >
+                            {meta.label}
+                          </h2>
+                          <span className="rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-bold tabular text-muted-foreground">
+                            {items.length}
+                          </span>
+                          <div className="ml-2 h-px flex-1 bg-border" />
+                        </div>
 
-                    {items.length === 0 ? (
-                      <div
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => {
-                          if (dragIdx !== null) s.moverAFranja(dragIdx, franja);
-                          setDragIdx(null);
-                        }}
-                        className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-subtle"
-                      >
-                        Sin clientes — suelta aquí una tarjeta para moverla a esta franja
-                      </div>
-                    ) : (
-                      <div
-                        className={cn(
-                          "grid gap-2.5",
-                          s.vista === "normal" && "sm:grid-cols-2 xl:grid-cols-3",
-                          s.vista === "compact" && "sm:grid-cols-2 xl:grid-cols-4",
-                        )}
-                      >
-                        {items.map((c) => (
-                          <ParadaCard
-                            key={c.id}
-                            parada={c}
-                            expandida={expanded === c.id}
-                            horarioAbierto={horarioAbierto === c.id}
-                            obsAbierta={obsAbierta === c.id}
-                            onToggle={() =>
-                              setExpanded((prev) => (prev === c.id ? null : c.id))
-                            }
-                            onEntregar={() => entregar(c)}
-                            onIncidencia={() => {
-                              s.marcarIncidencia(c.id);
-                              setExpanded(null);
-                            }}
-                            onPedido={() => setPedidoAbierto(c)}
-                            onToggleHorario={() =>
-                              setHorarioAbierto((p) => (p === c.id ? null : c.id))
-                            }
-                            onToggleObs={() => setObsAbierta((p) => (p === c.id ? null : c.id))}
-                            onCerrarHorario={() => setHorarioAbierto(null)}
-                            onCerrarObs={() => setObsAbierta(null)}
-                            onDragStart={() => setDragIdx(s.pending.indexOf(c))}
-                            onDropOn={() => {
-                              if (dragIdx !== null)
-                                s.moverParada(dragIdx, s.pending.indexOf(c), c.franja);
+                        {items.length === 0 ? (
+                          <div
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => {
+                              if (dragIdx !== null) s.moverAFranja(dragIdx, franja);
                               setDragIdx(null);
                             }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
-              </>
+                            className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-subtle"
+                          >
+                            Sin clientes — suelta aquí una tarjeta para moverla a esta franja
+                          </div>
+                        ) : (
+                          <div
+                            className={cn(
+                              "grid gap-2.5",
+                              s.vista === "normal" && "sm:grid-cols-2 xl:grid-cols-3",
+                              s.vista === "compact" && "sm:grid-cols-2 xl:grid-cols-4",
+                            )}
+                          >
+                            {items.map((c) => (
+                              <ParadaCard
+                                key={c.id}
+                                parada={c}
+                                expandida={expanded === c.id}
+                                horarioAbierto={horarioAbierto === c.id}
+                                obsAbierta={obsAbierta === c.id}
+                                onToggle={() =>
+                                  setExpanded((prev) => (prev === c.id ? null : c.id))
+                                }
+                                onEntregar={() => entregar(c)}
+                                onIncidencia={() => {
+                                  s.marcarIncidencia(c.id);
+                                  setExpanded(null);
+                                }}
+                                onPedido={() => setPedidoAbierto(c)}
+                                onToggleHorario={() =>
+                                  setHorarioAbierto((p) => (p === c.id ? null : c.id))
+                                }
+                                onToggleObs={() => setObsAbierta((p) => (p === c.id ? null : c.id))}
+                                onCerrarHorario={() => setHorarioAbierto(null)}
+                                onCerrarObs={() => setObsAbierta(null)}
+                                onDragStart={() => setDragIdx(s.pending.indexOf(c))}
+                                onDropOn={() => {
+                                  if (dragIdx !== null)
+                                    s.moverParada(dragIdx, s.pending.indexOf(c), c.franja);
+                                  setDragIdx(null);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
+                </>
               )}
             </>
           )}
@@ -311,9 +313,8 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
         subtitle={cobroPrompt?.nombre}
       >
         <p className="text-sm text-muted-foreground">
-          Importe de{" "}
-          <strong className="text-warning">{euro(cobroPrompt?.cobro_monto || 0)}</strong>. ¿Lo has
-          cobrado en efectivo o el cliente ha firmado?
+          Importe de <strong className="text-warning">{euro(cobroPrompt?.cobro_monto || 0)}</strong>
+          . ¿Lo has cobrado en efectivo o el cliente ha firmado?
         </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           <Btn
@@ -370,9 +371,7 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
 function StatCard({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-2.5 text-center shadow-card">
-      <div className={cn("font-display text-2xl font-bold tabular sm:text-3xl", tone)}>
-        {value}
-      </div>
+      <div className={cn("font-display text-2xl font-bold tabular sm:text-3xl", tone)}>{value}</div>
       <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-subtle">
         {label}
       </div>
@@ -445,10 +444,7 @@ function ParadaCard({
         c.sinUbicar && "border-l-2 border-l-warning",
       )}
     >
-      <button
-        onClick={onToggle}
-        className="flex w-full items-start gap-3 px-3 py-3 text-left"
-      >
+      <button onClick={onToggle} className="flex w-full items-start gap-3 px-3 py-3 text-left">
         <GripVertical className="mt-1 size-4 shrink-0 cursor-grab text-subtle opacity-50 transition-opacity group-hover:opacity-100" />
         <span
           className={cn(
@@ -531,6 +527,10 @@ function ParadaCard({
 
       {expandida && (
         <div className="space-y-2.5 border-t border-border bg-elevated/50 px-3 py-3">
+          <DumSwitch id={c.id} />
+          <div className="flex flex-wrap items-center gap-2">
+            <DumBadge id={c.id} />
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Btn tone="success" onClick={onEntregar}>
               <Check className="size-4" /> Entregado
@@ -788,9 +788,7 @@ function ObservacionesModal({ open, onClose }: { open: boolean; onClose: () => v
   const s = useRutas();
   const [q, setQ] = useState("");
   const lista = s.incidenciasPedido
-    .filter(
-      (o) => !q || o.nombre.toLowerCase().includes(q.toLowerCase()) || o.codigo.includes(q),
-    )
+    .filter((o) => !q || o.nombre.toLowerCase().includes(q.toLowerCase()) || o.codigo.includes(q))
     .sort((a, b) => b.timestamp - a.timestamp);
 
   return (

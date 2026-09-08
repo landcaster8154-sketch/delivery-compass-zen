@@ -116,6 +116,9 @@ export function DumProvider({ children }: { children: ReactNode }) {
   const [dumUrl, setDumUrlState] = useState<string>(() =>
     leer<string>(K_DUM_URL, DUM_URL_DEFECTO),
   );
+  const [requiere, setRequiereState] = useState<Record<string, boolean>>(() =>
+    leer<Record<string, boolean>>(K_DUM_REQ, {}),
+  );
 
   // Rehidratación en cliente (por si el primer render fue en servidor).
   useEffect(() => {
@@ -123,7 +126,17 @@ export function DumProvider({ children }: { children: ReactNode }) {
     setTraficoState(leer<Record<string, TraficoDato>>(K_TRAFICO, {}));
     setDumUrlState(leer<string>(K_DUM_URL, DUM_URL_DEFECTO));
     setTiempos(leer<Record<string, number>>(K_TIEMPOS, {}));
+    setRequiereState(leer<Record<string, boolean>>(K_DUM_REQ, {}));
   }, []);
+
+  const setRequiereDum = useCallback((id: string, valor: boolean) => {
+    setRequiereState((prev) => {
+      const next = { ...prev, [id]: valor };
+      escribir(K_DUM_REQ, next);
+      return next;
+    });
+  }, []);
+
 
   const registrarEntrega = useCallback((id: string) => {
     setTiempos((prev) => {

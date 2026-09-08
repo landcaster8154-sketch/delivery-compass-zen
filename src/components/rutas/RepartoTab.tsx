@@ -21,7 +21,7 @@ import {
 import { useMemo, useState } from "react";
 
 import { Badge, Btn, Card, EmptyState, Field, LinkBtn, Modal, TextArea } from "./primitives";
-import { DumAlertModal, DumBadge } from "./DumAlert";
+import { DumAlertModal, DumBadge, DumSwitch } from "./DumAlert";
 import { TraficoBadge, TraficoPanel } from "./TraficoPanel";
 import { TimelinePorRealizar } from "./TimelinePorRealizar";
 import { useDum } from "@/lib/rutas/dum";

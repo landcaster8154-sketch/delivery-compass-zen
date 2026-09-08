@@ -74,8 +74,14 @@ export function RepartoTab({ onIrAResumen }: { onIrAResumen: () => void }) {
     return set.sort();
   }, [s.pending, s.completed, s.issues]);
 
-  /** Paso 1: nunca finaliza directamente; primero el aviso DUM 360. */
-  const entregar = (p: Parada) => setDumParada(p);
+  /** Paso 1: aviso DUM solo si la parada está marcada como zona DUM. */
+  const entregar = (p: Parada) => {
+    if (!d.requiereDum(p.id)) {
+      finalizarParada(p);
+      return;
+    }
+    setDumParada(p);
+  };
 
   /** Paso 2: solo tras confirmar el aviso DUM. */
   const finalizarParada = (p: Parada) => {
